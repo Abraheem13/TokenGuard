@@ -21,9 +21,11 @@ echo "==> [2/5] Creating virtual environment at ${VENV_DIR}"
 "$PYTHON_BIN" -m venv "$VENV_DIR"
 # shellcheck disable=SC1091
 source "${VENV_DIR}/bin/activate"
-python -m pip install --upgrade pip --quiet
+# Upgrade the build toolchain FIRST. On Python 3.13 an old setuptools lacks
+# pkg_resources, which breaks source builds of some wheels (e.g. pyarrow).
+python -m pip install --upgrade pip setuptools wheel --quiet
 
-echo "==> [3/5] Installing pinned dependencies (this can take a few minutes)"
+echo "==> [3/5] Installing dependencies (this can take a few minutes)"
 pip install -r requirements.txt --quiet
 
 echo "==> [4/5] Installing tokenguard in editable mode"
