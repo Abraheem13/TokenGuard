@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Data & heavy artifacts (regenerate via `make data`)
+data/raw/
+data/processed/
+*.pkl
+*.parquet
+
+# Experiment outputs (figures/tables are regenerated; logs are local)
+experiments/results/*.log
+experiments/telemetry.sqlite
+
+# Secrets / local overrides
+.env
+configs/local*.yaml
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

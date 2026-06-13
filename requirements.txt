@@ -1,0 +1,37 @@
+# TokenGuard — pinned dependencies (Python >= 3.10)
+# Core scientific stack
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+scipy==1.14.1
+pyarrow==17.0.0
+
+# Deep learning (CUDA build resolved by pip on the cluster; CPU fallback works)
+torch==2.5.1
+transformers==4.46.3
+peft==0.13.2
+accelerate==1.1.1
+
+# Data
+datasets==3.1.0
+huggingface_hub==0.26.2
+
+# Config / utilities
+pyyaml==6.0.2
+tqdm==4.67.1
+rich==13.9.4
+
+# Plotting
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Product layer (Days 6–7)
+fastapi==0.115.5
+uvicorn==0.32.1
+httpx==0.27.2
+streamlit==1.40.2
+
+# Testing / quality
+pytest==8.3.4
+pytest-cov==6.0.0
+ruff==0.8.1

@@ -1,0 +1,49 @@
+# =============================================================================
+# TokenGuard — default configuration (single source of truth)
+# Override any value with a local YAML passed via --config, or env var
+# TOKENGUARD_CONFIG. Never edit results-affecting values silently: bump
+# `experiment.tag` instead so runs stay traceable.
+# =============================================================================
+
+experiment:
+  tag: "day1-baseline"          # appears in every results filename
+  seed: 42
+  results_dir: "experiments/results"
+  figures_dir: "experiments/figures"
+
+data:
+  # RouterBench: 405K samples, 11 models, precomputed responses + cost +
+  # correctness. Hugging Face repo (dataset card: withmartian/routerbench).
+  hf_repo_id: "withmartian/routerbench"
+  hf_filename: "routerbench_0shot.pkl"   # 0-shot split used throughout
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  # Held-out split strategy: "random" (stratified by task) or
+  # "leave_one_task_out" (used for the Day-5 distribution-shift experiment).
+  split: "random"
+  test_size: 0.2
+
+router:
+  # Cost–quality trade-off weight: reward r = quality - lambda * cost.
+  # Swept in Day 2+; this is the default operating point.
+  lambda_cost: 0.5
+  # SLOW level (Day 4): query encoder
+  encoder_model: "Qwen/Qwen3-0.6B"
+  embedding_dim: 1024
+  # FAST level (Day 5): LinUCB exploration strength
+  linucb_alpha: 1.0
+  # MID level (Day 5): EMA decay
+  ema_beta: 0.99
+  # SLOW update period N (requests between LoRA/refit updates)
+  slow_update_every: 500
+
+proxy:
+  host: "0.0.0.0"
+  port: 8800
+  telemetry_db: "experiments/telemetry.sqlite"
+  # Model pool served locally (Day 6). Tiers map to vLLM/Ollama endpoints.
+  pool:
+    - { tier: 1, name: "qwen3-0.6b", endpoint: "http://localhost:8001/v1" }
+    - { tier: 2, name: "qwen3-8b",   endpoint: "http://localhost:8002/v1" }
+    - { tier: 3, name: "qwen3-14b",  endpoint: "http://localhost:8003/v1" }
+    - { tier: 4, name: "qwen3-32b-awq", endpoint: "http://localhost:8004/v1" }
