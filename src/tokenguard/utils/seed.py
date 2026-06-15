@@ -27,5 +27,8 @@ def set_global_seed(seed: int) -> None:
             # Trade a little speed for reproducibility in dissertation runs.
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-    except ImportError:
-        pass  # torch not installed yet (fine for Days 1-2 data work)
+    except (ImportError, OSError):
+        # ImportError: torch not installed yet (fine for Days 1-3 data work).
+        # OSError: a partial/broken torch install (e.g. missing .so) must not
+        # crash pure-NumPy experiments that don't need torch.
+        pass

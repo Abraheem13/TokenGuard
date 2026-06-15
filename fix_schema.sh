@@ -1,3 +1,13 @@
+#!/usr/bin/env bash
+# TokenGuard — schema fix for the real RouterBench layout.
+# Run from the repo root:  bash fix_schema.sh
+set -euo pipefail
+if [[ ! -d src/tokenguard/data || ! -d tests ]]; then
+  echo "ERROR: run from the tokenguard repo root." >&2; exit 1
+fi
+echo "==> Applying schema fix..."
+
+cat > src/tokenguard/data/routerbench.py << 'TG_FIX_EOF'
 """RouterBench dataset loading and canonicalisation.
 
 RouterBench (Hu et al., 2024, arXiv:2403.12031) ships ~405K samples spanning
@@ -349,3 +359,187 @@ class RouterBench:
             "oracle_perf": float(perf[rows, best].mean()),
             "oracle_cost": float(cost[rows, best].mean()),
         }
+TG_FIX_EOF
+echo "   wrote src/tokenguard/data/routerbench.py"
+
+cat > tests/test_day1.py << 'TG_FIX_EOF'
+"""Day 1 tests.
+
+The loader is tested against a synthetic fixture that mimics the published
+RouterBench wire format (``model|metric`` columns), so the parsing logic is
+verified *before* the real download — and continues to be tested in CI
+without network access.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from tokenguard.config import load_config
+from tokenguard.data.routerbench import RouterBench, canonicalise, detect_schema
+from tokenguard.utils.seed import set_global_seed
+
+MODELS = ["gpt-4-1106-preview", "claude-instant-v1", "mistral-8x7b-chat"]
+TASKS = ["mmlu", "gsm8k", "hellaswag"]
+
+
+@pytest.fixture()
+def raw_frame() -> pd.DataFrame:
+    """Synthetic raw frame in RouterBench wire format (240 rows)."""
+    rng = np.random.default_rng(0)
+    n = 240
+    data = {
+        "sample_id": [f"s{i:04d}" for i in range(n)],
+        "prompt": [f"Question number {i}?" for i in range(n)],
+        "eval_name": [TASKS[i % len(TASKS)] for i in range(n)],
+    }
+    for j, m in enumerate(MODELS):
+        # Bigger models: higher performance, higher cost (realistic ordering).
+        data[f"{m}|performance"] = rng.binomial(1, 0.55 + 0.15 * j, size=n).astype(float)
+        data[f"{m}|total_cost"] = rng.uniform(0.0001, 0.001, size=n) * (j + 1) ** 2
+    return pd.DataFrame(data)
+
+
+@pytest.fixture()
+def bench(raw_frame: pd.DataFrame) -> RouterBench:
+    schema = detect_schema(raw_frame)
+    return RouterBench(canonicalise(raw_frame, schema))
+
+
+# --------------------------- schema detection ------------------------------ #
+def test_detect_schema_finds_models_and_columns(raw_frame: pd.DataFrame) -> None:
+    schema = detect_schema(raw_frame)
+    assert set(schema.models) == set(MODELS)
+    assert schema.perf_suffix == "performance"
+    assert schema.cost_suffix == "total_cost"
+    assert schema.prompt_col == "prompt"
+    assert schema.eval_col == "eval_name"
+
+
+def test_detect_schema_fails_loudly_without_metric_columns() -> None:
+    bad = pd.DataFrame({"prompt": ["x"], "eval_name": ["mmlu"]})
+    with pytest.raises(ValueError):
+        detect_schema(bad)
+
+
+def test_metadata_columns_are_not_mistaken_for_models(raw_frame: pd.DataFrame) -> None:
+    # A column with the separator but only one metric must not create a model.
+    raw_frame["oracle|performance"] = 1.0  # no matching oracle|total_cost
+    schema = detect_schema(raw_frame)
+    assert "oracle" not in schema.models
+
+
+def test_real_bare_column_layout_is_parsed() -> None:
+    """Lock the published routerbench_0shot layout.
+
+    Performance is stored in the *bare* model-name column; cost is suffixed
+    with ``|total_cost``; ``|model_response`` holds free text; and
+    ``oracle_model_to_route_to`` is metadata. This is the exact shape the
+    real download exposes, so we encode it as a regression guard.
+    """
+    rng = np.random.default_rng(0)
+    n = 120
+    models = ["gpt-4-1106-preview", "claude-v2", "mistralai/mistral-7b-chat"]
+    data = {
+        "sample_id": [f"s{i}" for i in range(n)],
+        "prompt": [f"Q{i}" for i in range(n)],
+        "eval_name": [TASKS[i % len(TASKS)] for i in range(n)],
+    }
+    for m in models:
+        data[m] = rng.binomial(1, 0.6, size=n).astype(float)        # bare perf
+        data[f"{m}|model_response"] = [f"resp {i}" for i in range(n)]  # text
+        data[f"{m}|total_cost"] = rng.uniform(1e-5, 1e-3, size=n)    # cost
+    data["oracle_model_to_route_to"] = rng.integers(0, len(models), size=n)
+    raw = pd.DataFrame(data)
+
+    schema = detect_schema(raw)
+    assert schema.perf_layout == "bare"
+    assert set(schema.models) == set(models)
+    assert "oracle_model_to_route_to" not in schema.models
+
+    bench = RouterBench(canonicalise(raw, schema))
+    assert not bench.df.isna().any().any()
+    assert bench.perf_matrix().shape == (n, len(models))
+    # bare perf column must be read as the performance value, not the text col
+    assert set(np.unique(bench.perf_matrix())).issubset({0.0, 1.0})
+
+
+# --------------------------- canonicalisation ------------------------------ #
+def test_canonical_frame_has_no_nans_and_correct_shape(bench: RouterBench) -> None:
+    assert not bench.df.isna().any().any()
+    assert bench.perf_matrix().shape == (len(bench.df), len(MODELS))
+    assert bench.cost_matrix().shape == (len(bench.df), len(MODELS))
+
+
+def test_rows_with_missing_values_are_dropped(raw_frame: pd.DataFrame) -> None:
+    raw_frame.loc[0, f"{MODELS[0]}|performance"] = np.nan
+    schema = detect_schema(raw_frame)
+    canonical = canonicalise(raw_frame, schema)
+    assert len(canonical) == len(raw_frame) - 1
+
+
+# --------------------------------- splits ---------------------------------- #
+def test_random_split_is_stratified_and_disjoint(bench: RouterBench) -> None:
+    train, test = bench.split_random(test_size=0.2, seed=42)
+    assert len(train.df) + len(test.df) == len(bench.df)
+    assert set(train.df.sample_id).isdisjoint(set(test.df.sample_id))
+    # every task appears on both sides (stratification)
+    assert set(train.tasks) == set(TASKS) and set(test.tasks) == set(TASKS)
+
+
+def test_random_split_is_reproducible(bench: RouterBench) -> None:
+    _, t1 = bench.split_random(0.2, seed=42)
+    _, t2 = bench.split_random(0.2, seed=42)
+    assert list(t1.df.sample_id) == list(t2.df.sample_id)
+
+
+def test_leave_one_task_out_split(bench: RouterBench) -> None:
+    train, test = bench.split_leave_one_task_out("gsm8k")
+    assert set(test.df.eval_name) == {"gsm8k"}
+    assert "gsm8k" not in set(train.df.eval_name)
+
+
+def test_leave_one_task_out_rejects_unknown_task(bench: RouterBench) -> None:
+    with pytest.raises(ValueError):
+        bench.split_leave_one_task_out("not-a-task")
+
+
+# ------------------------------ summaries ---------------------------------- #
+def test_oracle_dominates_every_single_model(bench: RouterBench) -> None:
+    oracle_perf = bench.oracle_stats()["oracle_perf"]
+    assert oracle_perf >= bench.summary()["mean_perf"].max() - 1e-12
+
+
+# ------------------------------- config ------------------------------------ #
+def test_load_default_config_from_repo_root() -> None:
+    cfg = load_config("configs/default.yaml")
+    assert cfg.experiment.seed == 42
+    assert cfg.data.hf_repo_id == "withmartian/routerbench"
+    assert 0.0 < cfg.data.test_size < 1.0
+    assert cfg.router.slow_update_every > 0
+
+
+def test_config_rejects_unknown_keys(tmp_path) -> None:
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("experiment:\n  sedd: 1\n")  # typo must fail loudly
+    with pytest.raises(KeyError):
+        load_config("configs/default.yaml", override_path=bad)
+
+
+# -------------------------------- seeding ---------------------------------- #
+def test_global_seed_makes_numpy_deterministic() -> None:
+    set_global_seed(7)
+    a = np.random.rand(5)
+    set_global_seed(7)
+    b = np.random.rand(5)
+    assert np.allclose(a, b)
+TG_FIX_EOF
+echo "   wrote tests/test_day1.py"
+
+echo ""
+echo "==> Done. Now run:"
+echo "    make test                       # expect 26 passed"
+echo "    python scripts/day1_download_data.py --force"
+echo "    python scripts/day2_static_baselines.py"

@@ -66,6 +66,41 @@ def test_metadata_columns_are_not_mistaken_for_models(raw_frame: pd.DataFrame) -
     assert "oracle" not in schema.models
 
 
+def test_real_bare_column_layout_is_parsed() -> None:
+    """Lock the published routerbench_0shot layout.
+
+    Performance is stored in the *bare* model-name column; cost is suffixed
+    with ``|total_cost``; ``|model_response`` holds free text; and
+    ``oracle_model_to_route_to`` is metadata. This is the exact shape the
+    real download exposes, so we encode it as a regression guard.
+    """
+    rng = np.random.default_rng(0)
+    n = 120
+    models = ["gpt-4-1106-preview", "claude-v2", "mistralai/mistral-7b-chat"]
+    data = {
+        "sample_id": [f"s{i}" for i in range(n)],
+        "prompt": [f"Q{i}" for i in range(n)],
+        "eval_name": [TASKS[i % len(TASKS)] for i in range(n)],
+    }
+    for m in models:
+        data[m] = rng.binomial(1, 0.6, size=n).astype(float)        # bare perf
+        data[f"{m}|model_response"] = [f"resp {i}" for i in range(n)]  # text
+        data[f"{m}|total_cost"] = rng.uniform(1e-5, 1e-3, size=n)    # cost
+    data["oracle_model_to_route_to"] = rng.integers(0, len(models), size=n)
+    raw = pd.DataFrame(data)
+
+    schema = detect_schema(raw)
+    assert schema.perf_layout == "bare"
+    assert set(schema.models) == set(models)
+    assert "oracle_model_to_route_to" not in schema.models
+
+    bench = RouterBench(canonicalise(raw, schema))
+    assert not bench.df.isna().any().any()
+    assert bench.perf_matrix().shape == (n, len(models))
+    # bare perf column must be read as the performance value, not the text col
+    assert set(np.unique(bench.perf_matrix())).issubset({0.0, 1.0})
+
+
 # --------------------------- canonicalisation ------------------------------ #
 def test_canonical_frame_has_no_nans_and_correct_shape(bench: RouterBench) -> None:
     assert not bench.df.isna().any().any()
