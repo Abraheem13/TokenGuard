@@ -7,11 +7,14 @@ from tokenguard.routers.static import ConstantRouter, OracleRouter, RandomMixRou
 from tokenguard.routers.mf_router import MatrixFactorizationRouter
 from tokenguard.routers.knn_router import KNNRouter
 from tokenguard.routers.cascade_router import CascadeRouter
+from tokenguard.routers.contrastive_router import ContrastiveRouter
 
 __all__ = [
     "Router", "ConstantRouter", "OracleRouter", "RandomMixRouter",
     "MatrixFactorizationRouter", "KNNRouter", "CascadeRouter",
+    "ContrastiveRouter",
 ]
 
-# BERT router is imported lazily (pulls in torch/transformers). Import via:
+# BERT + Qwen encoder pull in torch/transformers; import directly when needed:
 #   from tokenguard.routers.bert_router import BertClassifierRouter
+#   from tokenguard.routers.qwen_encoder import QwenEncoder

@@ -14,6 +14,7 @@ pyarrow>=18.0          # 18.x ships cp313 wheels; 17.x did not
 # Deep learning (CPU wheels resolve everywhere; CUDA build on the cluster)
 torch>=2.2
 transformers>=4.46
+sentencepiece>=0.2
 peft>=0.13
 accelerate>=1.0
 
