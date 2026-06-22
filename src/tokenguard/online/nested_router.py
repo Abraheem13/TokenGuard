@@ -54,6 +54,8 @@ class NestedOnlineRouter:
         enable_fast: bool = True,
         enable_mid: bool = True,
         enable_slow: bool = True,
+        surprise_gate: bool = True,
+        surprise_scale: float = 3.0,
         seed: int = 42,
     ):
         if base.P_ is None:
@@ -67,6 +69,8 @@ class NestedOnlineRouter:
         self.enable_fast = enable_fast
         self.enable_mid = enable_mid
         self.enable_slow = enable_slow
+        self.surprise_gate = surprise_gate
+        self.surprise_scale = surprise_scale
         self.seed = seed
 
         self.models = base.models_
@@ -77,6 +81,14 @@ class NestedOnlineRouter:
         self.ema_theta = self.fast.theta.copy()
         self.replay = ReplayBuffer(replay_capacity, base.P_.shape[1], self.n_models, seed=seed)
         self._step = 0
+        # B2 coupling state (Fast→Slow surprise-triggered consolidation)
+        self._surprise_ema = 0.0
+        self._last_slow = 0
+        self._min_slow_gap = 150          # don't consolidate too often
+        self._surprise_trigger = 0.35     # surprise EMA threshold to fire slow
+        self._anchor_gain = 0.05          # Slow→Fast anchoring (very weak)
+        self._slow_blend = 0.3            # how much refit replaces calibration
+        self._slow_min_calerr = 0.30      # skip slow if base already well-calibrated
 
     @property
     def n_arms_(self) -> int:
@@ -122,8 +134,15 @@ class NestedOnlineRouter:
         return self
 
     # ------------------------------------------------------------------ #
-    def run_stream(self, stream: RouterBench, record_every: int = 200) -> dict:
+    def run_stream(self, stream: RouterBench, record_every: int = 200,
+                   arrival_step: int | None = None, arrival_arm: int | None = None) -> dict:
         """Process a query stream online; return per-step metrics + summary.
+
+        If ``arrival_step`` and ``arrival_arm`` are given, that arm is masked out
+        (unavailable) before ``arrival_step`` and becomes selectable afterwards —
+        the new-model-arrival experiment. A static policy that was warm-started
+        without the arm keeps a stale preference and rarely tries it; the online
+        head can discover it via exploration once it is available.
 
         Returns a dict with cumulative reward, a running quality/cost trace, and
         the mean reward — the inputs to the Day-5 adaptation curves.
@@ -142,6 +161,12 @@ class NestedOnlineRouter:
             q_row = self._calibrated_quality(proj[t : t + 1])[0]
             ctx = self._context(proj[t], q_row)
 
+            # new-model-arrival mask: the arriving arm is unavailable until its
+            # arrival step. We implement masking by a large penalty on that arm.
+            avail_penalty = np.zeros(self.n_models)
+            if arrival_arm is not None and arrival_step is not None and t < arrival_step:
+                avail_penalty[arrival_arm] = 1e9
+
             if self.enable_fast:
                 u = self.fast.ucb(ctx) if not self.enable_mid else (
                     self.ema_theta @ ctx
@@ -150,19 +175,32 @@ class NestedOnlineRouter:
                         for a in range(self.n_models)
                     ])
                 )
-                arm = int(np.argmax(u - self.lambda_cost * c_norm_all[t]))
+                arm = int(np.argmax(u - self.lambda_cost * c_norm_all[t] - avail_penalty))
             else:
                 # static base policy (no online adaptation) — ablation baseline
-                arm = int(np.argmax(q_row - self.lambda_cost * c_norm_all[t]))
+                arm = int(np.argmax(q_row - self.lambda_cost * c_norm_all[t] - avail_penalty))
 
             # observe true outcome (table lookup; no model inference)
             quality = float(perf[t, arm])
             spend = float(cost[t, arm])
             reward = quality - self.lambda_cost * (spend / max(cost.mean(), 1e-12))
 
-            # FAST + MID updates
+            # FAST + MID updates, gated by surprise (Nested-Learning mechanism 1)
             if self.enable_fast:
-                self.fast.update(arm, ctx, reward)
+                # surprise = |observed − predicted reward| for the chosen arm.
+                # The predicted reward uses the fast head's current estimate.
+                pred = float(self.fast.theta[arm] @ ctx)
+                surprise = abs(reward - pred)
+                if self.surprise_gate:
+                    # map surprise in [0, ~2] to a gain ≥ ~0.3: familiar outcomes
+                    # update gently, surprising ones strongly. Bounded for stability.
+                    gain = 1.0 + self.surprise_scale * min(surprise, 2.0)
+                else:
+                    gain = 1.0
+                self.fast.update(arm, ctx, reward, gain=gain)
+                self._surprise_ema = (
+                    0.99 * getattr(self, "_surprise_ema", surprise) + 0.01 * surprise
+                )
                 if self.enable_mid:
                     self.ema_theta = (
                         self.ema_beta * self.ema_theta
@@ -170,11 +208,27 @@ class NestedOnlineRouter:
                     )
             self.replay.add(proj[t], perf[t])
 
-            # SLOW update
+            # SLOW update (Nested-Learning mechanism 2: Fast→Slow context flow).
+            # Consolidation fires either on the periodic schedule OR when
+            # accumulated surprise crosses a threshold — i.e. when the world has
+            # changed enough to warrant it (surprise-triggered consolidation,
+            # mirroring the Continuum Memory System).
             self._step += 1
-            if (self.enable_slow and self._step % self.slow_update_every == 0
-                    and len(self.replay) >= 100):
+            surprise_triggered = (
+                self.enable_slow and self.surprise_gate
+                and getattr(self, "_surprise_ema", 0.0) > self._surprise_trigger
+                and (self._step - self._last_slow) >= self._min_slow_gap
+                and len(self.replay) >= 100
+            )
+            scheduled = (
+                self.enable_slow and self._step % self.slow_update_every == 0
+                and len(self.replay) >= 100
+            )
+            if surprise_triggered or scheduled:
                 self._slow_refit()
+                self._last_slow = self._step
+                # reset the surprise accumulator after consolidating
+                self._surprise_ema = 0.0
 
             cum_reward += reward
             rewards.append(reward); qualities.append(quality); costs.append(spend)
@@ -189,19 +243,62 @@ class NestedOnlineRouter:
             "cum_reward": float(cum_reward),
             "trace_steps": trace_steps,
             "trace_reward": trace_reward,
+            "post_arrival_quality": (
+                float(np.mean(qualities[arrival_step:]))
+                if arrival_step is not None else float(np.mean(qualities))
+            ),
+            "post_arrival_reward": (
+                float(np.mean(rewards[arrival_step:]))
+                if arrival_step is not None else float(np.mean(rewards))
+            ),
         }
 
     # ------------------------------------------------------------------ #
     def _slow_refit(self) -> None:
-        """Refit per-model calibration (a, b) on a replay sample (SLOW level)."""
+        """Consolidate (SLOW level) and anchor the fast head (Slow→Fast flow).
+
+        Designed to *refine, never replace*. On a well-calibrated base (e.g. the
+        contrastive router after BCE training) an aggressive refit can only move
+        calibration away from its optimum, so we (i) blend the refit calibration
+        conservatively with the existing one and (ii) anchor the fast head only
+        weakly toward high-confidence consolidated estimates. Both effects are
+        deliberately small: the slow level should track genuine long-horizon
+        drift, not overwrite a good prior.
+        """
         proj, perf = self.replay.sample(self.slow_sample_size, recency_weighted=True)
         E = _l2norm(self.base.E_)
         S = _l2norm(proj) @ E.T                                 # similarities
-        a, b = self.base.a_.copy(), self.base.b_.copy()
-        for _ in range(100):
+        a0, b0 = self.base.a_.copy(), self.base.b_.copy()
+        # Safety guard: only consolidate if the current calibration is actually
+        # miscalibrated on recent replay (mean |p − y| above a floor). On a
+        # well-calibrated base the refit can only add noise, so we skip it —
+        # this is what keeps `full` from regressing below `fast` when the base
+        # is already strong (the real-RouterBench regime).
+        P0 = _sigmoid(a0 * S + b0)
+        cal_err = float(np.abs(P0 - perf).mean())
+        if cal_err < self._slow_min_calerr:
+            return
+        a, b = a0.copy(), b0.copy()
+        for _ in range(60):
             P = _sigmoid(a * S + b)
             G = (P - perf) / len(perf)
-            a -= 0.5 * (G * S).sum(axis=0)
-            b -= 0.5 * G.sum(axis=0)
-        # write back the consolidated calibration
-        self.base.a_, self.base.b_ = a.astype(np.float32), b.astype(np.float32)
+            a -= 0.3 * (G * S).sum(axis=0)
+            b -= 0.3 * G.sum(axis=0)
+        # (i) conservative blend — keep most of the trained calibration
+        beta = self._slow_blend
+        self.base.a_ = ((1 - beta) * a0 + beta * a).astype(np.float32)
+        self.base.b_ = ((1 - beta) * b0 + beta * b).astype(np.float32)
+
+        # (ii) weak Slow→Fast anchoring, only where the consolidated estimate is
+        # confident (quality clearly high), so we never drag the fast head toward
+        # an uncertain arm.
+        if not self.enable_fast or self._anchor_gain <= 0.0:
+            return
+        k = min(128, proj.shape[0])
+        q_cons = _sigmoid(self.base.a_ * S[:k] + self.base.b_)
+        for i in range(k):
+            best = int(np.argmax(q_cons[i]))
+            if q_cons[i, best] < 0.6:        # only anchor on confident estimates
+                continue
+            ctx = self._context(proj[i], q_cons[i])
+            self.fast.update(best, ctx, float(q_cons[i, best]), gain=self._anchor_gain)

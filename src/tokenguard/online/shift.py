@@ -103,3 +103,26 @@ def family_boundaries(bench_stream: RouterBench, granularity: str = "task") -> l
             marks.append((str(f), i))
             prev = f
     return marks
+
+
+def new_model_arrival_schedule(
+    bench_stream: RouterBench,
+    arrival_model: str,
+    arrival_fraction: float = 0.5,
+) -> tuple[int, int]:
+    """Return (arrival_step, arm_index) for a new-model-arrival experiment.
+
+    The model named ``arrival_model`` is treated as *unavailable* until
+    ``arrival_step`` (a fraction of the stream), then added to the pool. This
+    models the realistic event of a new model being released mid-deployment:
+    a static router, trained before the arrival, never routes to it; an online
+    router can discover it once it becomes selectable.
+
+    Returns the integer arrival step and the arm index of the new model so the
+    router can gate that arm on/off over the stream.
+    """
+    if arrival_model not in bench_stream.models:
+        raise ValueError(f"{arrival_model!r} not in pool {bench_stream.models}")
+    arm = bench_stream.models.index(arrival_model)
+    step = int(len(bench_stream.df) * arrival_fraction)
+    return step, arm

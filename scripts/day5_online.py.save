@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 """Day 5 — nested online loop: ablation + distribution-shift experiment.
 
@@ -76,8 +77,6 @@ def main() -> int:
     parser.add_argument("--lr", type=float, default=0.02)
     parser.add_argument("--lambda-cost", type=float, default=0.5)
     parser.add_argument("--alpha", type=float, default=0.5)
-    parser.add_argument("--surprise-scale", type=float, default=3.0,
-                        help="Surprise-gating strength; lower = gentler.")
     parser.add_argument("--slow-every", type=int, default=300)
     parser.add_argument("--arrival-model", default=None,
                         help="Model name to treat as a late arrival (default: last in pool).")
@@ -142,7 +141,6 @@ def main() -> int:
             router = NestedOnlineRouter(
                 base=_clone_base(base), lambda_cost=args.lambda_cost,
                 alpha=args.alpha, slow_update_every=args.slow_every,
-                surprise_scale=args.surprise_scale,
                 seed=cfg.experiment.seed, **flags,
             ).warm_start(train)
             out = router.run_stream(stream, record_every=200)
@@ -164,7 +162,6 @@ def main() -> int:
         router = NestedOnlineRouter(
             base=_clone_base(base), lambda_cost=args.lambda_cost,
             alpha=args.alpha, slow_update_every=args.slow_every,
-            surprise_scale=args.surprise_scale,
             seed=cfg.experiment.seed, **flags,
         ).warm_start(train)
         out = router.run_stream(arrival_stream, record_every=200,

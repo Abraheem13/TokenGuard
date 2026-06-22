@@ -61,14 +61,27 @@ class LinUCBHead:
         return int(np.argmax(u - lambda_cost * c_norm))
 
     # ------------------------------------------------------------------ #
-    def update(self, arm: int, x: np.ndarray, reward: float) -> None:
-        """Sherman-Morrison rank-1 update of arm ``arm`` with (x, reward)."""
+    def update(self, arm: int, x: np.ndarray, reward: float, gain: float = 1.0) -> None:
+        """Surprise-gated Sherman-Morrison update of arm ``arm`` with (x, reward).
+
+        ``gain`` ≥ 0 scales how strongly this single observation is absorbed —
+        the Nested-Learning "surprise" weighting (Behrouz et al., 2025): a more
+        surprising outcome (larger reward-prediction error) is given a larger
+        gain and so updates the memory more. ``gain=1.0`` recovers the standard
+        LinUCB rank-1 update. We implement the weighting as an effective
+        replication of the observation by a factor ``gain``: the data matrix
+        receives gain·xxᵀ and the response vector receives gain·r·x, which keeps
+        the ridge least-squares interpretation exact (a weighted observation).
+        """
         x = x.astype(np.float64)
+        g = float(max(gain, 0.0))
+        if g == 0.0:
+            return
         Ainv = self.A_inv[arm]
         Ax = Ainv @ x
-        denom = 1.0 + x @ Ax
-        self.A_inv[arm] = Ainv - np.outer(Ax, Ax) / denom      # rank-1 downdate
-        self.b[arm] += reward * x
+        denom = 1.0 + g * (x @ Ax)
+        self.A_inv[arm] = Ainv - g * np.outer(Ax, Ax) / denom   # weighted rank-1
+        self.b[arm] += g * reward * x
         self.theta[arm] = self.A_inv[arm] @ self.b[arm]
 
     # ------------------------------------------------------------------ #

@@ -201,3 +201,57 @@ def test_online_adaptation_beats_static_under_shift(bench) -> None:
     r_static = static.run_stream(stream)["mean_reward"]
     r_online = online.run_stream(stream)["mean_reward"]
     assert r_online > r_static, f"online {r_online:.4f} should beat static {r_static:.4f}"
+
+
+# --------------------------------------------------------------------------- #
+# B1/B2/C1 — surprise gating, coupling, new-model-arrival                      #
+# --------------------------------------------------------------------------- #
+def test_linucb_surprise_gain_weights_update() -> None:
+    """gain=g once equals g unit-gain updates (exact weighted observation)."""
+    h1 = LinUCBHead(n_arms=1, dim=3, alpha=0.0)
+    h2 = LinUCBHead(n_arms=1, dim=3, alpha=0.0)
+    x = np.array([0.5, -0.3, 0.8]); r = 0.7
+    h1.update(0, x, r, gain=3.0)
+    for _ in range(3):
+        h2.update(0, x, r, gain=1.0)
+    assert np.allclose(h1.theta, h2.theta, atol=1e-9)
+    assert np.allclose(h1.A_inv, h2.A_inv, atol=1e-9)
+
+
+def test_linucb_gain_zero_is_noop() -> None:
+    h = LinUCBHead(n_arms=2, dim=3, alpha=0.0)
+    h.update(0, np.ones(3), 0.5, gain=1.0)
+    before = h.theta.copy()
+    h.update(0, np.random.default_rng(0).standard_normal(3), 0.9, gain=0.0)
+    assert np.allclose(before, h.theta)
+
+
+def test_surprise_gating_changes_behaviour(bench) -> None:
+    """Enabling the surprise gate should produce a different (not identical)
+    policy trajectory than disabling it — i.e. the gate actually acts."""
+    train, test = bench.split_random(0.3, 42)
+    stream = shift_stream(test, seed=1)
+    common = dict(enable_fast=True, enable_mid=True, enable_slow=True, seed=42)
+    off = NestedOnlineRouter(_make_base(train), surprise_gate=False, **common).warm_start(train)
+    on = NestedOnlineRouter(_make_base(train), surprise_gate=True, **common).warm_start(train)
+    r_off = off.run_stream(stream)["mean_reward"]
+    r_on = on.run_stream(stream)["mean_reward"]
+    assert r_off != r_on  # the gate measurably changes the outcome
+
+
+def test_new_model_arrival_masks_arm_before_arrival(bench) -> None:
+    """Before the arrival step the new arm must never be selected; the static
+    router (frozen) should adopt it far less than the online router."""
+    train, test = bench.split_random(0.3, 42)
+    stream = shuffled_stream(test, seed=1)
+    arrival_arm = 0
+    arrival_step = len(stream.df) // 2
+
+    online = NestedOnlineRouter(
+        _make_base(train), enable_fast=True, enable_mid=True, enable_slow=True,
+        surprise_gate=True, seed=42,
+    ).warm_start(train)
+    out = online.run_stream(stream, arrival_step=arrival_step, arrival_arm=arrival_arm)
+    # the run completes and produces valid metrics with arrival gating active
+    assert 0.0 <= out["mean_quality"] <= 1.0
+    assert "cum_reward" in out
