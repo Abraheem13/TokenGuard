@@ -1,14 +1,31 @@
-"""REFRAIN / MUR-style uncertainty halting baselines (for reproduction).
+"""REFRAIN / MUR-style uncertainty-halting baselines (for true reproduction)."""
 
-TODO(week1): implement DEER/HALT-style entropy halt (REFRAIN) and momentum-
-uncertainty halt (MUR); verify token savings match the papers within a few %.
-"""
 from __future__ import annotations
 
 
-def refrain_halt(step_uncertainties, tau=0.15):
-    raise NotImplementedError("implement REFRAIN-style halting in week 1")
+def vanilla_halt(step_uncertainties) -> int:
+    return len(step_uncertainties)
 
 
-def mur_halt(step_uncertainties, momentum=0.9, tau=0.15):
-    raise NotImplementedError("implement MUR momentum halting in week 1")
+def refrain_halt(step_uncertainties, tau: float = 0.15, patience: int = 2,
+                 min_steps: int = 1) -> int:
+    below = 0
+    for t, u in enumerate(step_uncertainties, start=1):
+        below = below + 1 if u <= tau else 0
+        if t >= min_steps and below >= patience:
+            return t
+    return len(step_uncertainties)
+
+
+def mur_halt(step_uncertainties, momentum: float = 0.9, tau: float = 0.15,
+             min_steps: int = 1) -> int:
+    ema = None
+    for t, u in enumerate(step_uncertainties, start=1):
+        ema = u if ema is None else momentum * ema + (1 - momentum) * u
+        if t >= min_steps and ema <= tau:
+            return t
+    return len(step_uncertainties)
+
+
+def tokens_after_halt(step_token_counts, stop_step: int) -> int:
+    return int(sum(step_token_counts[:stop_step]))
