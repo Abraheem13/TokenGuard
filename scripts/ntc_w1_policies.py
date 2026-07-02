@@ -221,14 +221,23 @@ def main() -> int:
                                     "bm": bench})}
         print("\n=== CALIBRATED (param chosen on warm-up, reported on held-out) ===")
         print(f"{'policy':<22}{'param':>8}{'acc':>8}{'tokens':>9}{'cut%':>7}{'resc':>6}")
+        # warm-up vanilla accuracy = the constraint anchor
+        warm_van_acc = float(np.mean([t["natural_correct"] for t in warm]))
         for fam, params in fams.items():
             fn, kwf = policy_fn[fam]
-            best_p, best_r = None, -1e18
+            # constrained pick: max token-cut s.t. warm acc >= vanilla_warm - eps;
+            # if nothing satisfies the constraint, fall back to highest warm acc.
+            eps = 0.01
+            feasible, all_pts = [], []
             for p_ in params:
                 rw = evaluate(warm, bench, fn, **kwf(p_))
-                score = rw["acc"] - args.mu * rw["tokens"]
-                if score > best_r:
-                    best_r, best_p = score, p_
+                all_pts.append((p_, rw))
+                if rw["acc"] >= warm_van_acc - eps:
+                    feasible.append((p_, rw))
+            if feasible:
+                best_p = min(feasible, key=lambda x: x[1]["tokens"])[0]
+            else:
+                best_p = max(all_pts, key=lambda x: x[1]["acc"])[0]
             re_ = evaluate(traces, bench, fn, **kwf(best_p))
             picks[fam] = (best_p, re_)
             cut = 100 * (1 - re_["tokens"] / vanilla_tok)
