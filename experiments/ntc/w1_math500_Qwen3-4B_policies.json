@@ -1,0 +1,161 @@
+{
+ "vanilla": {
+  "acc": 0.6833333333333333,
+  "tokens": 4377.691666666667
+ },
+ "rows": [
+  {
+   "policy": "DEER",
+   "param": 0.9,
+   "acc": 0.5416666666666666,
+   "tokens": 1641.2166666666667,
+   "tokens_ovh": 1694.2833333333333,
+   "halt_rate": 0.8666666666666667,
+   "rescued": 6
+  },
+  {
+   "policy": "DEER",
+   "param": 0.95,
+   "acc": 0.5916666666666667,
+   "tokens": 2653.4083333333333,
+   "tokens_ovh": 2738.5,
+   "halt_rate": 0.65,
+   "rescued": 4
+  },
+  {
+   "policy": "DEER",
+   "param": 0.99,
+   "acc": 0.6333333333333333,
+   "tokens": 4036.5916666666667,
+   "tokens_ovh": 4169.158333333334,
+   "halt_rate": 0.21666666666666667,
+   "rescued": 0
+  },
+  {
+   "policy": "EAT",
+   "param": 0.01,
+   "acc": 0.6333333333333333,
+   "tokens": 3136.55,
+   "tokens_ovh": 3238.8,
+   "halt_rate": 0.49166666666666664,
+   "rescued": 0
+  },
+  {
+   "policy": "EAT",
+   "param": 0.001,
+   "acc": 0.65,
+   "tokens": 3710.925,
+   "tokens_ovh": 3832.375,
+   "halt_rate": 0.35833333333333334,
+   "rescued": 0
+  },
+  {
+   "policy": "EAT",
+   "param": 0.0001,
+   "acc": 0.6666666666666666,
+   "tokens": 3885.8416666666667,
+   "tokens_ovh": 4012.575,
+   "halt_rate": 0.275,
+   "rescued": 0
+  },
+  {
+   "policy": "NTC-conf (momentum)",
+   "param": 0.85,
+   "acc": 0.5833333333333334,
+   "tokens": 2247.75,
+   "tokens_ovh": 2322.008333333333,
+   "halt_rate": 0.8,
+   "rescued": 6
+  },
+  {
+   "policy": "NTC-conf (momentum)",
+   "param": 0.9,
+   "acc": 0.625,
+   "tokens": 2973.625,
+   "tokens_ovh": 3070.5833333333335,
+   "halt_rate": 0.575,
+   "rescued": 5
+  },
+  {
+   "policy": "NTC-conf (momentum)",
+   "param": 0.95,
+   "acc": 0.625,
+   "tokens": 3823.25,
+   "tokens_ovh": 3950.8416666666667,
+   "halt_rate": 0.30833333333333335,
+   "rescued": 1
+  },
+  {
+   "policy": "NTC-conf (momentum)",
+   "param": 0.99,
+   "acc": 0.6583333333333333,
+   "tokens": 4278.541666666667,
+   "tokens_ovh": 4420.641666666666,
+   "halt_rate": 0.075,
+   "rescued": 0
+  },
+  {
+   "policy": "AGREE",
+   "param": 2,
+   "acc": 0.6,
+   "tokens": 1498.8833333333334,
+   "tokens_ovh": 1547.6416666666667,
+   "halt_rate": 0.875,
+   "rescued": 5
+  },
+  {
+   "policy": "AGREE",
+   "param": 3,
+   "acc": 0.6916666666666667,
+   "tokens": 2114.3,
+   "tokens_ovh": 2187.5833333333335,
+   "halt_rate": 0.8083333333333333,
+   "rescued": 6
+  },
+  {
+   "policy": "NTC-v2 (agree+conf)",
+   "param": "2/0.3",
+   "acc": 0.6,
+   "tokens": 1498.8833333333334,
+   "tokens_ovh": 1547.6416666666667,
+   "halt_rate": 0.875,
+   "rescued": 5
+  },
+  {
+   "policy": "NTC-v2 (agree+conf)",
+   "param": "2/0.5",
+   "acc": 0.6,
+   "tokens": 1517.2416666666666,
+   "tokens_ovh": 1566.275,
+   "halt_rate": 0.8666666666666667,
+   "rescued": 5
+  },
+  {
+   "policy": "NTC-v2 (agree+conf)",
+   "param": "2/0.7",
+   "acc": 0.6333333333333333,
+   "tokens": 1822.4416666666666,
+   "tokens_ovh": 1879.95,
+   "halt_rate": 0.8333333333333334,
+   "rescued": 7
+  },
+  {
+   "policy": "NTC-v2 (agree+conf)",
+   "param": "3/0.3",
+   "acc": 0.6916666666666667,
+   "tokens": 2114.3,
+   "tokens_ovh": 2187.5833333333335,
+   "halt_rate": 0.8083333333333333,
+   "rescued": 6
+  },
+  {
+   "policy": "NTC-v2 (agree+conf)",
+   "param": "3/0.5",
+   "acc": 0.6916666666666667,
+   "tokens": 2114.3,
+   "tokens_ovh": 2187.5833333333335,
+   "halt_rate": 0.8083333333333333,
+   "rescued": 6
+  }
+ ]
+}
