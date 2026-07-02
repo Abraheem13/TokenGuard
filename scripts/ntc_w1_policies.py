@@ -244,6 +244,28 @@ def main() -> int:
             print(f"{fam:<22}{str(best_p):>8}{re_['acc']:>8.3f}{re_['tokens']:>9.0f}"
                   f"{cut:>6.0f}%{re_.get('rescued', 0):>6}")
 
+        # ---- NTC-full (adaptive): slow tier picks (signal family, param) jointly
+        # on warm-up under the accuracy constraint; held-out reported.
+        gfeas, gall = [], []
+        for fam, params in fams.items():
+            fn, kwf = policy_fn[fam]
+            for p_ in params:
+                rw = evaluate(warm, bench, fn, **kwf(p_))
+                gall.append((fam, p_, rw))
+                if rw["acc"] >= warm_van_acc - eps:
+                    gfeas.append((fam, p_, rw))
+        if gfeas:
+            gfam, gp, _ = min(gfeas, key=lambda x: x[2]["tokens"])
+        else:
+            gfam, gp, _ = max(gall, key=lambda x: x[2]["acc"])
+        gfn, gkwf = policy_fn[gfam]
+        gre = evaluate(traces, bench, gfn, **gkwf(gp))
+        gcut = 100 * (1 - gre["tokens"] / vanilla_tok)
+        print("-" * 62)
+        print(f"{'NTC-full (adaptive)':<22}{gfam[:5]+'/'+str(gp):>8}{gre['acc']:>8.3f}"
+              f"{gre['tokens']:>9.0f}{gcut:>6.0f}%{gre.get('rescued', 0):>6}")
+        print(f"  slow tier selected: signal={gfam}, param={gp} (on warm-up)")
+
     # headline: best policy point with acc >= vanilla - 0.01
     ok_pts = [(n_, p_, r_) for n_, p_, r_ in rows if r_["acc"] >= vanilla_acc - 0.01]
     if ok_pts:
