@@ -1,0 +1,1 @@
+Fig. 1: Quality is the RouterBench per-query performance score in [0,1]; cost is mean USD per query (log scale). The per-query oracle attains higher quality than always-best at ~15x lower cost, establishing the routing headroom.
