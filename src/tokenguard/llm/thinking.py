@@ -47,6 +47,7 @@ class ThinkTrace:
     natural_correct: bool
     n_total_tokens: int       # thinking + natural answer tokens
     finish_reason: str        # "stop" | "length" (length => overthinking hit cap)
+    token_nll: list[float] = field(default_factory=list)
     probes: list[Probe] = field(default_factory=list)
 
     def to_dict(self):
@@ -198,7 +199,7 @@ class ThinkingRunner:
         self._lazy()
         from vllm import SamplingParams
         sp = SamplingParams(temperature=temperature, top_p=top_p, top_k=top_k,
-                            max_tokens=max_tokens, seed=self.seed)
+                            max_tokens=max_tokens, seed=self.seed, logprobs=1)
         prompts = [self._chat_prompt(q) for q in questions]
         outs = self._llm.generate(prompts, sp)
         res = []
@@ -206,11 +207,18 @@ class ThinkingRunner:
             comp = out.outputs[0]
             think, answer, closed = split_think(comp.text)
             n_think = len(self._tok.encode(think, add_special_tokens=False))
+            # per-token NLL of the generation (chosen tokens) — enables the
+            # faithful MUR baseline (per-step NLL momentum) downstream
+            nll = []
+            for i, tid in enumerate(comp.token_ids):
+                lp = comp.logprobs[i] if comp.logprobs and i < len(comp.logprobs) else None
+                nll.append(round(-lp[tid].logprob, 4) if lp and tid in lp else 0.0)
             res.append({
                 "text": comp.text, "think_text": think, "answer_text": answer,
                 "had_close": closed, "n_think": n_think,
                 "n_total": len(comp.token_ids),
                 "finish": comp.finish_reason or "",
+                "token_nll": nll,
             })
         return res
 
