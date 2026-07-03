@@ -1,0 +1,1 @@
+Fig. 3: Quality is the RouterBench per-query performance score in [0,1]; cost is mean USD per query (log scale). The contrastive router dominates matrix factorization in the economically relevant low-cost region and matches it at high cost.

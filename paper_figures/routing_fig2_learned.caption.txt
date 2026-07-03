@@ -1,0 +1,1 @@
+Fig. 2: Quality is the RouterBench per-query performance score in [0,1]; cost is mean USD per query (log scale). Cascade exceeds the always-best cost because sequential escalation re-pays inference for every attempted model; naive cascading can therefore cost MORE than always using the strongest model.
