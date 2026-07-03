@@ -115,9 +115,16 @@ def per_item(traces, bench, fn, kw):
     return np.array(ok), np.array(tok, dtype=float)
 
 
-def calibrate(warm, bench, eps=0.01):
-    """Per-family constrained pick + NTC-full global pick on warm-up."""
+def calibrate(warm, bench, eps=None):
+    """Per-family constrained pick + NTC-full global pick on warm-up.
+
+    eps defaults to the ONE-STANDARD-ERROR rule: the accuracy constraint is
+    'within one binomial standard error of the warm-up vanilla estimate' —
+    a statistically principled tolerance that stabilises the pick on small
+    warm-up sets while still excluding genuinely-collapsing policies."""
     van = float(np.mean([t["natural_correct"] for t in warm]))
+    if eps is None:
+        eps = max(0.01, math.sqrt(van * (1 - van) / max(1, len(warm))))
     picks, gfeas, gall = {}, [], []
     for fam, (fn, grid) in FAMILIES.items():
         feas, allp = [], []

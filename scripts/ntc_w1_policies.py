@@ -227,7 +227,9 @@ def main() -> int:
             fn, kwf = policy_fn[fam]
             # constrained pick: max token-cut s.t. warm acc >= vanilla_warm - eps;
             # if nothing satisfies the constraint, fall back to highest warm acc.
-            eps = 0.01
+            # one-standard-error rule (statistically principled tolerance)
+            import math as _m
+            eps = max(0.01, _m.sqrt(warm_van_acc * (1 - warm_van_acc) / max(1, len(warm))))
             feasible, all_pts = [], []
             for p_ in params:
                 rw = evaluate(warm, bench, fn, **kwf(p_))
