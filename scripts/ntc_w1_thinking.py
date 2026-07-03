@@ -51,7 +51,9 @@ def main() -> int:
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    out_path = args.out or f"experiments/ntc/w1_{args.benchmark}_{args.model.split('/')[-1]}.json"
+    suffix = "" if args.seed == 42 else f"_s{args.seed}"
+    out_path = args.out or (f"experiments/ntc/w1_{args.benchmark}_"
+                            f"{args.model.split('/')[-1]}{suffix}.json")
     data = load_benchmark(args.benchmark, limit=args.limit)
     runner = ThinkingRunner(model_name=args.model,
                             tensor_parallel_size=args.tp_size,
@@ -88,6 +90,7 @@ def main() -> int:
                 think_text=g["think_text"], n_think_tokens=g["n_think"],
                 natural_answer=nat_ans, natural_correct=nat_ok,
                 n_total_tokens=g["n_total"], finish_reason=g["finish"],
+                token_nll=g.get("token_nll", []),
                 probes=my_probes)
             traces.append(tr.to_dict())
         done = min(i + args.batch, len(data))

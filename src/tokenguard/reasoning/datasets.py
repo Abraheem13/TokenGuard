@@ -13,6 +13,8 @@ def load_benchmark(name: str, split: str = "test", limit: int | None = None):
         return _load_math500(limit)
     if name in ("gpqa_diamond", "gpqa"):
         return _load_gpqa_diamond(limit)
+    if name in ("aime24", "aime-24", "aime2024"):
+        return _load_aime24(limit)
     raise ValueError(f"unknown benchmark {name!r}")
 
 
@@ -113,3 +115,23 @@ def _norm(s: str) -> str:
 def is_correct(pred: str, gold: str, benchmark: str) -> bool:
     p = extract_answer(pred, benchmark)
     return _norm(p) == _norm(gold)
+
+
+def _load_aime24(limit):
+    """AIME 2024 (30 problems; integer answers 0-999). avg@k is obtained by
+    running the harness k times with different --seed values and aggregating
+    with scripts/ntc_genseed_agg.py."""
+    from datasets import load_dataset
+    try:
+        ds = load_dataset("HuggingFaceH4/aime_2024", split="train")
+        get = lambda ex: (ex["problem"], str(ex["answer"]).strip())
+    except Exception:
+        ds = load_dataset("Maxwell-Jia/AIME_2024", split="train")
+        get = lambda ex: (ex["Problem"], str(ex["Answer"]).strip())
+    out = []
+    for i, ex in enumerate(ds):
+        if limit and i >= limit:
+            break
+        q, a = get(ex)
+        out.append({"id": f"aime24-{i}", "question": q, "answer": a})
+    return out

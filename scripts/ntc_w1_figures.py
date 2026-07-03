@@ -119,19 +119,35 @@ def per_item(traces, bench, fn, kw, with_ovh=False):
     return np.array(ok), np.array(tok, dtype=float)
 
 
-def calibrate(warm, bench):
-    van = float(np.mean([t["natural_correct"] for t in warm]))
-    eps = max(0.01, math.sqrt(van * (1 - van) / max(1, len(warm))))
-    gfeas, gall = [], []
+def calibrate(warm, bench, k_folds=5, eps=0.03):
+    """Paired K-fold CV slow-tier selection (see ntc_w1_stats.calibrate).
+    Returns (per_family_picks, (global_family, global_kw))."""
+    n = len(warm)
+    k_folds = max(2, min(k_folds, n))
+    idx = np.arange(n)
+    folds = [f for f in (idx[i::k_folds] for i in range(k_folds)) if len(f)]
+    van_all = np.array([t["natural_correct"] for t in warm], dtype=float)
+    van_by_fold = [van_all[f].mean() for f in folds]
+    picks, gcands = {}, []
     for fam, (fn, grid) in FAMILIES.items():
+        cands = []
         for kw in grid:
             ok, tok = per_item(warm, bench, fn, kw)
-            r = (float(ok.mean()), float(tok.mean()))
-            gall.append((fam, kw, r))
-            if r[0] >= van - eps:
-                gfeas.append((fam, kw, r))
-    return (min(gfeas, key=lambda x: x[2][1])[:2] if gfeas
-            else max(gall, key=lambda x: x[2][0])[:2])
+            ok = ok.astype(float)
+            d = np.array([ok[f].mean() - van_by_fold[j]
+                          for j, f in enumerate(folds)])
+            md = float(d.mean())
+            se = float(d.std(ddof=1) / math.sqrt(len(folds)))
+            cands.append({"kw": kw, "md": md, "se": se,
+                          "tok": float(tok.mean()), "lcb": md - se})
+            gcands.append({"fam": fam, **cands[-1]})
+        feas = [c for c in cands if c["lcb"] >= -eps]
+        picks[fam] = (min(feas, key=lambda c: c["tok"])["kw"] if feas
+                      else max(cands, key=lambda c: c["md"])["kw"])
+    gfeas = [c for c in gcands if c["lcb"] >= -eps]
+    g = (min(gfeas, key=lambda c: c["tok"]) if gfeas
+         else max(gcands, key=lambda c: c["md"]))
+    return picks, (g["fam"], g["kw"])
 
 
 def oracle(traces, bench):
@@ -188,7 +204,7 @@ def main() -> int:
         idx = rng.permutation(n)
         warm = [traces[i] for i in idx[:n_warm]]
         ev = [traces[i] for i in idx[n_warm:]]
-        gfam, gkw = calibrate(warm, bench)
+        _, (gfam, gkw) = calibrate(warm, bench, eps=0.05)
         gok, gtok = per_item(ev, bench, FAMILIES[gfam][0], gkw)
         ax.scatter([gtok.mean()], [gok.mean()], marker="*", s=220,
                    color="crimson", edgecolor="k", zorder=6,
@@ -207,7 +223,7 @@ def main() -> int:
         print(f"figure: {args.figdir}/pareto_{tag}.png")
 
         # ---- multi-seed table for RESULTS.md ----
-        agg = {k: {"acc": [], "cut": []} for k in list(FAMILIES) + ["NTC-full", "vanilla"]}
+        agg = {k: {"acc": [], "cut": []} for k in list(FAMILIES) + ["vanilla"]}
         for seed in range(args.n_seeds):
             rng = np.random.default_rng(seed)
             idx = rng.permutation(n)
@@ -216,39 +232,32 @@ def main() -> int:
             vt = np.array([t["n_total_tokens"] for t in ev], dtype=float).mean()
             agg["vanilla"]["acc"].append(np.mean([t["natural_correct"] for t in ev]))
             agg["vanilla"]["cut"].append(0.0)
-            # per-family constrained pick (reuse global calibrate per family)
-            van = float(np.mean([t["natural_correct"] for t in warm]))
-            eps = max(0.01, math.sqrt(van * (1 - van) / max(1, len(warm))))
-            for fam, (fn, grid) in FAMILIES.items():
-                feas, allp = [], []
-                for kw in grid:
-                    ok, tok = per_item(warm, bench, fn, kw)
-                    r = (float(ok.mean()), float(tok.mean()))
-                    allp.append((kw, r))
-                    if r[0] >= van - eps:
-                        feas.append((kw, r))
-                kwp = (min(feas, key=lambda x: x[1][1])[0] if feas
-                       else max(allp, key=lambda x: x[1][0])[0])
+            picks, _ = calibrate(warm, bench, eps=0.01)
+            for fam, kwp in picks.items():
+                fn = FAMILIES[fam][0]
                 ok, tok = per_item(ev, bench, fn, kwp)
                 agg[fam]["acc"].append(ok.mean())
                 agg[fam]["cut"].append(100 * (1 - tok.mean() / vt))
-            gfam, gkw = calibrate(warm, bench)
-            ok, tok, ovh = per_item(ev, bench, FAMILIES[gfam][0], gkw, with_ovh=True)
-            agg["NTC-full"]["acc"].append(ok.mean())
-            agg["NTC-full"]["cut"].append(100 * (1 - tok.mean() / vt))
-            agg["NTC-full"].setdefault("cut_ovh", []).append(100 * (1 - ovh.mean() / vt))
+            for e, nm in [(0.01, "NTC-full(e=0.01)"), (0.05, "NTC-full(e=0.05)")]:
+                _, (gfam, gkw) = calibrate(warm, bench, eps=e)
+                ok, tok, ovh = per_item(ev, bench, FAMILIES[gfam][0], gkw, with_ovh=True)
+                a = agg.setdefault(nm, {"acc": [], "cut": []})
+                a["acc"].append(ok.mean())
+                a["cut"].append(100 * (1 - tok.mean() / vt))
+                a.setdefault("cut_ovh", []).append(100 * (1 - ovh.mean() / vt))
 
         md.append(f"\n## {model} · {bench} (n={n}, {args.n_seeds} seeds, "
                   f"eval n={n - n_warm})\n")
         md.append("| method | accuracy (mean±std) | token cut % (mean±std) |")
         md.append("|---|---|---|")
-        for k in ["vanilla", "DEER", "EAT", "NTC-conf", "AGREE", "NTC-v2", "NTC-full"]:
+        for k in ["vanilla", "DEER", "EAT", "NTC-conf", "AGREE", "NTC-v2",
+                  "NTC-full(e=0.01)", "NTC-full(e=0.05)"]:
             a = np.array(agg[k]["acc"]); c = np.array(agg[k]["cut"])
-            bold = "**" if k == "NTC-full" else ""
+            bold = "**" if k.startswith("NTC-full") else ""
             md.append(f"| {bold}{k}{bold} | {a.mean():.3f} ± {a.std():.3f} "
                       f"| {c.mean():.1f} ± {c.std():.1f} |")
-        co = np.array(agg["NTC-full"].get("cut_ovh", [0.0]))
-        md.append(f"| NTC-full incl. probe overhead | — "
+        co = np.array(agg["NTC-full(e=0.05)"].get("cut_ovh", [0.0]))
+        md.append(f"| NTC-full(e=0.05) incl. probe overhead | — "
                   f"| {co.mean():.1f} ± {co.std():.1f} |")
 
     md.append("\n---\n## Limitations (stated for the paper)\n")
