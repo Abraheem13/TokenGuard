@@ -12,6 +12,7 @@
 | AGREE | 0.679 ± 0.020 | 50.6 ± 2.0 |
 | NTC-v2 | 0.648 ± 0.052 | 54.3 ± 4.1 |
 | **NTC-full** | 0.648 ± 0.052 | 54.3 ± 4.1 |
+| NTC-full incl. probe overhead | — | 52.7 ± 4.2 |
 
 ## Qwen/Qwen3-4B · gsm8k (n=200, 10 seeds, eval n=120)
 
@@ -24,6 +25,7 @@
 | AGREE | 0.896 ± 0.039 | 63.6 ± 6.2 |
 | NTC-v2 | 0.880 ± 0.029 | 69.1 ± 0.8 |
 | **NTC-full** | 0.880 ± 0.029 | 69.1 ± 0.8 |
+| NTC-full incl. probe overhead | — | 67.9 ± 0.9 |
 
 ## Qwen/Qwen3-4B · gpqa_diamond (n=198, 10 seeds, eval n=119)
 
@@ -36,6 +38,7 @@
 | AGREE | 0.341 ± 0.032 | 66.8 ± 0.9 |
 | NTC-v2 | 0.342 ± 0.026 | 69.3 ± 2.2 |
 | **NTC-full** | 0.449 ± 0.053 | 30.9 ± 11.3 |
+| NTC-full incl. probe overhead | — | 29.4 ± 11.5 |
 
 ## Qwen/Qwen3-1.7B · math500 (n=200, 10 seeds, eval n=120)
 
@@ -48,3 +51,11 @@
 | AGREE | 0.609 ± 0.054 | 52.5 ± 6.3 |
 | NTC-v2 | 0.594 ± 0.056 | 54.4 ± 5.9 |
 | **NTC-full** | 0.578 ± 0.042 | 50.3 ± 13.7 |
+| NTC-full incl. probe overhead | — | 48.4 ± 14.3 |
+
+---
+## Limitations (stated for the paper)
+
+* Generation uses a single sampling seed (temp 0.6, seed 42); the reported ± std is over 10 calibration splits, not generation seeds.
+* Token counts follow the total-generated convention (thinking + emitted answer); the overhead-inclusive row adds all trial-answer probe tokens actually paid online.
+* GPQA-Diamond n=198; AIME excluded (n=30/set requires avg@16 for meaningful comparison, out of compute scope).

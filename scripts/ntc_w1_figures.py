@@ -100,18 +100,22 @@ STYLE = {"DEER": ("tab:red", "s"), "EAT": ("tab:orange", "^"),
          "NTC-v2": ("tab:blue", "D")}
 
 
-def per_item(traces, bench, fn, kw):
-    ok, tok = [], []
+def per_item(traces, bench, fn, kw, with_ovh=False):
+    ok, tok, ovh = [], [], []
     for t in traces:
         probes = t["probes"]
         kk = fn(probes, **({**kw, "bm": bench} if "bm" in fn.__code__.co_varnames else kw)) \
              if probes else None
         if kk is None:
             ok.append(bool(t["natural_correct"])); tok.append(t["n_total_tokens"])
+            ovh.append(t["n_total_tokens"] + sum(q["n_probe_tokens"] for q in probes))
         else:
             p = probes[kk]
             ok.append(is_correct(p["answer"], t["gold"], bench))
             tok.append(p["ckpt_tokens"] + p["n_probe_tokens"])
+            ovh.append(p["ckpt_tokens"] + sum(q["n_probe_tokens"] for q in probes[:kk + 1]))
+    if with_ovh:
+        return np.array(ok), np.array(tok, dtype=float), np.array(ovh, dtype=float)
     return np.array(ok), np.array(tok, dtype=float)
 
 
@@ -229,9 +233,10 @@ def main() -> int:
                 agg[fam]["acc"].append(ok.mean())
                 agg[fam]["cut"].append(100 * (1 - tok.mean() / vt))
             gfam, gkw = calibrate(warm, bench)
-            ok, tok = per_item(ev, bench, FAMILIES[gfam][0], gkw)
+            ok, tok, ovh = per_item(ev, bench, FAMILIES[gfam][0], gkw, with_ovh=True)
             agg["NTC-full"]["acc"].append(ok.mean())
             agg["NTC-full"]["cut"].append(100 * (1 - tok.mean() / vt))
+            agg["NTC-full"].setdefault("cut_ovh", []).append(100 * (1 - ovh.mean() / vt))
 
         md.append(f"\n## {model} · {bench} (n={n}, {args.n_seeds} seeds, "
                   f"eval n={n - n_warm})\n")
@@ -242,7 +247,19 @@ def main() -> int:
             bold = "**" if k == "NTC-full" else ""
             md.append(f"| {bold}{k}{bold} | {a.mean():.3f} ± {a.std():.3f} "
                       f"| {c.mean():.1f} ± {c.std():.1f} |")
+        co = np.array(agg["NTC-full"].get("cut_ovh", [0.0]))
+        md.append(f"| NTC-full incl. probe overhead | — "
+                  f"| {co.mean():.1f} ± {co.std():.1f} |")
 
+    md.append("\n---\n## Limitations (stated for the paper)\n")
+    md.append("* Generation uses a single sampling seed (temp 0.6, seed 42); "
+              "the reported ± std is over 10 calibration splits, not "
+              "generation seeds.")
+    md.append("* Token counts follow the total-generated convention "
+              "(thinking + emitted answer); the overhead-inclusive row adds "
+              "all trial-answer probe tokens actually paid online.")
+    md.append("* GPQA-Diamond n=198; AIME excluded (n=30/set requires avg@16 "
+              "for meaningful comparison, out of compute scope).")
     Path(args.results_md).write_text("\n".join(md) + "\n")
     print(f"\nresults table: {args.results_md}")
     return 0
