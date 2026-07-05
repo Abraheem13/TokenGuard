@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Fix AIME scoring (boxed extraction) then re-aggregate — no GPU, data unchanged.
+set -e
+if [ ! -d "src/tokenguard" ]; then echo "ERROR: run from TokenGuard repo root"; exit 1; fi
+decode() { base64 -d > "$1"; echo "  wrote $1"; }
+echo "Installing AIME scoring fix..."
+decode "apply_aime_fix.py" << 'B64EOF'
+IyEvdXNyL2Jpbi9lbnYgcHl0aG9uCiIiIlBhdGNoIGRhdGFzZXRzLnB5IHNvIGFpbWUyNCBhbnN3ZXJzIGFyZSBleHRyYWN0ZWQgdmlhIFxcYm94ZWR7fSAobGlrZSBtYXRoNTAwKS4KV2FzIGZhbGxpbmcgdGhyb3VnaCB0byByZXR1cm4td2hvbGUtdGV4dCwgZ2l2aW5nIHZhbmlsbGE9MC4wIG9uIEFJTUUuIE5vIHJlLWdlbgpuZWVkZWQg4oCUIHRoaXMgZml4ZXMgc2NvcmluZyBvbmx5OyByZS1ydW4gdGhlIEFJTUUgYWdncmVnYXRlIGFmdGVyd2FyZHMuIiIiCmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKcCA9IFBhdGgoInNyYy90b2tlbmd1YXJkL3JlYXNvbmluZy9kYXRhc2V0cy5weSIpCnNyYyA9IHAucmVhZF90ZXh0KCkKCmlmICdiZW5jaG1hcmsgaW4gKCJtYXRoNTAwIiwgIm1hdGgtNTAwIiwgImFpbWUyNCInIGluIHNyYzoKICAgIHByaW50KCJhaW1lMjQgYWxyZWFkeSBpbiBleHRyYWN0X2Fuc3dlciIpOyByYWlzZSBTeXN0ZW1FeGl0KDApCgpvbGQgPSAnJycgICAgaWYgYmVuY2htYXJrIGluICgibWF0aDUwMCIsICJtYXRoLTUwMCIpOgogICAgICAgIHJldHVybiBfZXh0cmFjdF9ib3hlZCh0ZXh0KScnJwpuZXcgPSAnJycgICAgaWYgYmVuY2htYXJrIGluICgibWF0aDUwMCIsICJtYXRoLTUwMCIsICJhaW1lMjQiLCAiYWltZS0yNCIsICJhaW1lMjAyNCIpOgogICAgICAgIHJldHVybiBfZXh0cmFjdF9ib3hlZCh0ZXh0KScnJwphc3NlcnQgb2xkIGluIHNyYywgImV4dHJhY3RfYW5zd2VyIG1hdGggYnJhbmNoIG5vdCBmb3VuZCIKc3JjID0gc3JjLnJlcGxhY2Uob2xkLCBuZXcpCnAud3JpdGVfdGV4dChzcmMpCnByaW50KCJQQVRDSEVEOiBhaW1lMjQgbm93IHVzZXMgYm94ZWQgZXh0cmFjdGlvbiBpbiBleHRyYWN0X2Fuc3dlcigpIikK
+B64EOF
+python apply_aime_fix.py && rm apply_aime_fix.py
+echo ""
+echo "Fixed. Re-aggregate AIME (correct scoring now):"
+echo "  python scripts/ntc_genseed_agg.py \$(for s in 100 101 102 103 104 105 106 107; do echo --probes experiments/ntc/w1_aime24_Qwen3-4B_s\$s.json; done) --tag aime24_avg8"

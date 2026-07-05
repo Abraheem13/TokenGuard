@@ -74,7 +74,7 @@ def extract_answer(text: str, benchmark: str) -> str:
                 return m[0].replace(",", "")
         nums = _NUM.findall(text)
         return nums[-1].replace(",", "") if nums else ""
-    if benchmark in ("math500", "math-500"):
+    if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024"):
         return _extract_boxed(text)
     if benchmark in ("gpqa_diamond", "gpqa"):
         m = re.findall(r"\b([A-D])\b", text.upper())
