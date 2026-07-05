@@ -193,25 +193,22 @@ def per_item(traces, bench, fn, kw):
     return np.array(ok), np.array(tok, dtype=float)
 
 
-def calibrate(warm, bench, k_folds=5, eps=0.03):
-    """Slow-tier selection via PAIRED K-fold cross-validation on the warm-up.
+def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
+    """Slow-tier selection via REPEATED paired K-fold CV (evidence-tested on
+    the real MATH-500/GPQA probe data).
 
-    For each candidate (family, param) we compute, per fold f, the paired
-    accuracy difference d_f = acc_candidate(f) - acc_vanilla(f). Pairing on
-    the same fold cancels shared item-difficulty variance, giving a far
-    tighter standard error than comparing point estimates. Feasibility:
-        mean(d) - SE(d) >= -eps        (lower confidence bound rule)
-    Among feasible candidates we take minimum mean tokens; if none is
-    feasible, the maximum mean(d) candidate (accuracy-safest). The same rule
-    yields per-family picks and the global NTC-full pick, so on the warm-up
-    objective NTC-full is >= each fixed component by construction.
+    For each candidate (family, param): pool the paired per-fold accuracy
+    differences d = acc_candidate(fold) - acc_vanilla(fold) over `reps`
+    shuffled fold assignments (3 x 5-fold = 15 paired diffs), cancelling
+    shared item-difficulty variance and fold-assignment noise. Feasibility:
+        mean(d) >= -eps      (eps = accuracy SLO, default 2.5 points)
+    Among feasible candidates take minimum mean tokens; if none feasible,
+    the maximum mean(d) candidate. The same rule yields per-family picks and
+    the global NTC-full pick.
     """
     n = len(warm)
     k_folds = max(2, min(k_folds, n))
-    idx = np.arange(n)
-    folds = [f for f in (idx[i::k_folds] for i in range(k_folds)) if len(f)]
     van_all = np.array([t["natural_correct"] for t in warm], dtype=float)
-    van_by_fold = [van_all[f].mean() for f in folds]
 
     picks, gcands = {}, []
     for fam, (fn, grid) in FAMILIES.items():
@@ -219,21 +216,22 @@ def calibrate(warm, bench, k_folds=5, eps=0.03):
         for kw in grid:
             ok, tok = per_item(warm, bench, fn, kw)
             ok = ok.astype(float)
-            d = np.array([ok[f].mean() - van_by_fold[j]
-                          for j, f in enumerate(folds)])
-            md = float(d.mean())
-            se = float(d.std(ddof=1) / math.sqrt(k_folds))
-            cands.append({"kw": kw, "md": md, "se": se,
-                          "tok": float(tok.mean()), "lcb": md - se})
+            ds = []
+            for r in range(reps):
+                rng = np.random.default_rng(1000 + r)
+                idx = rng.permutation(n)
+                folds = [f for f in (idx[i::k_folds] for i in range(k_folds))
+                         if len(f)]
+                ds += [float(ok[f].mean() - van_all[f].mean()) for f in folds]
+            md = float(np.mean(ds))
+            cands.append({"kw": kw, "md": md, "tok": float(tok.mean())})
             gcands.append({"fam": fam, **cands[-1]})
-        feas = [c for c in cands if c["lcb"] >= -eps]
+        feas = [c for c in cands if c["md"] >= -eps]
         picks[fam] = (min(feas, key=lambda c: c["tok"])["kw"] if feas
                       else max(cands, key=lambda c: c["md"])["kw"])
-    gfeas = [c for c in gcands if c["lcb"] >= -eps]
-    if gfeas:
-        g = min(gfeas, key=lambda c: c["tok"])
-    else:
-        g = max(gcands, key=lambda c: c["md"])
+    gfeas = [c for c in gcands if c["md"] >= -eps]
+    g = (min(gfeas, key=lambda c: c["tok"]) if gfeas
+         else max(gcands, key=lambda c: c["md"]))
     return picks, (g["fam"], g["kw"])
 
 
@@ -254,7 +252,7 @@ def main() -> int:
     ap.add_argument("--warmup-frac", type=float, default=0.4)
     ap.add_argument("--n-seeds", type=int, default=10)
     ap.add_argument("--n-boot", type=int, default=10000)
-    ap.add_argument("--cv-eps", type=float, nargs="+", default=[0.01, 0.05],
+    ap.add_argument("--cv-eps", type=float, nargs="+", default=[0.01, 0.025],
                     help="accuracy-SLO tolerances for NTC-full (strict, relaxed)")
     args = ap.parse_args()
 
