@@ -129,26 +129,26 @@ def per_item(traces, bench, fn, kw):
     return np.array(ok), np.array(tok, dtype=float)
 
 
-def calibrate_global(warm, bench, k_folds=5, eps=0.03):
-    """Paired K-fold CV pick of (family, kw) — same rule as ntc_w1_stats."""
+def calibrate_global(warm, bench, k_folds=5, eps=0.025, reps=3):
+    """Repeated paired K-fold CV pick of (family, kw) — same rule as stats."""
     n = len(warm)
     k_folds = max(2, min(k_folds, n))
-    idx = np.arange(n)
-    folds = [f for f in (idx[i::k_folds] for i in range(k_folds)) if len(f)]
     van_all = np.array([t["natural_correct"] for t in warm], dtype=float)
-    van_by_fold = [van_all[f].mean() for f in folds]
     gcands = []
     for fam, (fn, grid) in FAMILIES.items():
         for kw in grid:
             ok, tok = per_item(warm, bench, fn, kw)
             ok = ok.astype(float)
-            d = np.array([ok[f].mean() - van_by_fold[j]
-                          for j, f in enumerate(folds)])
-            md = float(d.mean())
-            se = float(d.std(ddof=1) / math.sqrt(len(folds)))
-            gcands.append({"fam": fam, "kw": kw, "md": md,
-                           "tok": float(tok.mean()), "lcb": md - se})
-    feas = [c for c in gcands if c["lcb"] >= -eps]
+            ds = []
+            for r in range(reps):
+                rng = np.random.default_rng(1000 + r)
+                idx = rng.permutation(n)
+                folds = [f for f in (idx[i::k_folds] for i in range(k_folds))
+                         if len(f)]
+                ds += [float(ok[f].mean() - van_all[f].mean()) for f in folds]
+            gcands.append({"fam": fam, "kw": kw, "md": float(np.mean(ds)),
+                           "tok": float(tok.mean())})
+    feas = [c for c in gcands if c["md"] >= -eps]
     g = (min(feas, key=lambda c: c["tok"]) if feas
          else max(gcands, key=lambda c: c["md"]))
     return g["fam"], g["kw"]
@@ -163,7 +163,7 @@ def main() -> int:
     ap.add_argument("--large-params", type=float, default=4.0)
     ap.add_argument("--warmup-frac", type=float, default=0.4)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--cv-eps", type=float, default=0.05,
+    ap.add_argument("--cv-eps", type=float, default=0.025,
                     help="accuracy-SLO tolerance for per-model policy calibration")
     ap.add_argument("--figdir", default="experiments/ntc/figures")
     ap.add_argument("--out", default="experiments/ntc/JOINT.md")

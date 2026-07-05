@@ -119,32 +119,31 @@ def per_item(traces, bench, fn, kw, with_ovh=False):
     return np.array(ok), np.array(tok, dtype=float)
 
 
-def calibrate(warm, bench, k_folds=5, eps=0.03):
-    """Paired K-fold CV slow-tier selection (see ntc_w1_stats.calibrate).
-    Returns (per_family_picks, (global_family, global_kw))."""
+def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
+    """Repeated paired K-fold CV slow-tier selection (see ntc_w1_stats)."""
     n = len(warm)
     k_folds = max(2, min(k_folds, n))
-    idx = np.arange(n)
-    folds = [f for f in (idx[i::k_folds] for i in range(k_folds)) if len(f)]
     van_all = np.array([t["natural_correct"] for t in warm], dtype=float)
-    van_by_fold = [van_all[f].mean() for f in folds]
     picks, gcands = {}, []
     for fam, (fn, grid) in FAMILIES.items():
         cands = []
         for kw in grid:
             ok, tok = per_item(warm, bench, fn, kw)
             ok = ok.astype(float)
-            d = np.array([ok[f].mean() - van_by_fold[j]
-                          for j, f in enumerate(folds)])
-            md = float(d.mean())
-            se = float(d.std(ddof=1) / math.sqrt(len(folds)))
-            cands.append({"kw": kw, "md": md, "se": se,
-                          "tok": float(tok.mean()), "lcb": md - se})
+            ds = []
+            for r in range(reps):
+                rng = np.random.default_rng(1000 + r)
+                idx = rng.permutation(n)
+                folds = [f for f in (idx[i::k_folds] for i in range(k_folds))
+                         if len(f)]
+                ds += [float(ok[f].mean() - van_all[f].mean()) for f in folds]
+            md = float(np.mean(ds))
+            cands.append({"kw": kw, "md": md, "tok": float(tok.mean())})
             gcands.append({"fam": fam, **cands[-1]})
-        feas = [c for c in cands if c["lcb"] >= -eps]
+        feas = [c for c in cands if c["md"] >= -eps]
         picks[fam] = (min(feas, key=lambda c: c["tok"])["kw"] if feas
                       else max(cands, key=lambda c: c["md"])["kw"])
-    gfeas = [c for c in gcands if c["lcb"] >= -eps]
+    gfeas = [c for c in gcands if c["md"] >= -eps]
     g = (min(gfeas, key=lambda c: c["tok"]) if gfeas
          else max(gcands, key=lambda c: c["md"]))
     return picks, (g["fam"], g["kw"])
@@ -204,7 +203,7 @@ def main() -> int:
         idx = rng.permutation(n)
         warm = [traces[i] for i in idx[:n_warm]]
         ev = [traces[i] for i in idx[n_warm:]]
-        _, (gfam, gkw) = calibrate(warm, bench, eps=0.05)
+        _, (gfam, gkw) = calibrate(warm, bench, eps=0.025)
         gok, gtok = per_item(ev, bench, FAMILIES[gfam][0], gkw)
         ax.scatter([gtok.mean()], [gok.mean()], marker="*", s=220,
                    color="crimson", edgecolor="k", zorder=6,
@@ -238,7 +237,7 @@ def main() -> int:
                 ok, tok = per_item(ev, bench, fn, kwp)
                 agg[fam]["acc"].append(ok.mean())
                 agg[fam]["cut"].append(100 * (1 - tok.mean() / vt))
-            for e, nm in [(0.01, "NTC-full(e=0.01)"), (0.05, "NTC-full(e=0.05)")]:
+            for e, nm in [(0.01, "NTC-full(e=0.01)"), (0.025, "NTC-full(e=0.025)")]:
                 _, (gfam, gkw) = calibrate(warm, bench, eps=e)
                 ok, tok, ovh = per_item(ev, bench, FAMILIES[gfam][0], gkw, with_ovh=True)
                 a = agg.setdefault(nm, {"acc": [], "cut": []})
@@ -251,12 +250,12 @@ def main() -> int:
         md.append("| method | accuracy (mean±std) | token cut % (mean±std) |")
         md.append("|---|---|---|")
         for k in ["vanilla", "DEER", "EAT", "NTC-conf", "AGREE", "NTC-v2",
-                  "NTC-full(e=0.01)", "NTC-full(e=0.05)"]:
+                  "NTC-full(e=0.01)", "NTC-full(e=0.025)"]:
             a = np.array(agg[k]["acc"]); c = np.array(agg[k]["cut"])
             bold = "**" if k.startswith("NTC-full") else ""
             md.append(f"| {bold}{k}{bold} | {a.mean():.3f} ± {a.std():.3f} "
                       f"| {c.mean():.1f} ± {c.std():.1f} |")
-        co = np.array(agg["NTC-full(e=0.05)"].get("cut_ovh", [0.0]))
+        co = np.array(agg["NTC-full(e=0.025)"].get("cut_ovh", [0.0]))
         md.append(f"| NTC-full(e=0.05) incl. probe overhead | — "
                   f"| {co.mean():.1f} ± {co.std():.1f} |")
 
