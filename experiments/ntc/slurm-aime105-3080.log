@@ -1,0 +1,9 @@
+usage: ntc_w1_thinking.py [-h] [--model MODEL]
+                          [--benchmark {gsm8k,math500,gpqa_diamond}]
+                          [--limit LIMIT] [--max-think MAX_THINK]
+                          [--probe-every PROBE_EVERY]
+                          [--max-probes MAX_PROBES] [--batch BATCH]
+                          [--tp-size TP_SIZE] [--max-model-len MAX_MODEL_LEN]
+                          [--seed SEED] [--out OUT]
+ntc_w1_thinking.py: error: argument --benchmark: invalid choice: 'aime24' (choose from gsm8k, math500, gpqa_diamond)
+JOB DONE

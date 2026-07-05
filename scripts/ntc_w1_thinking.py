@@ -39,7 +39,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", default="Qwen/Qwen3-4B")
     ap.add_argument("--benchmark", default="math500",
-                    choices=["gsm8k", "math500", "gpqa_diamond"])
+                    choices=["gsm8k", "math500", "gpqa_diamond", "aime24"])
     ap.add_argument("--limit", type=int, default=100)
     ap.add_argument("--max-think", type=int, default=6144)
     ap.add_argument("--probe-every", type=int, default=256)
