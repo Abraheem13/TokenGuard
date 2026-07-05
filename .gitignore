@@ -24,3 +24,8 @@ configs/local*.yaml
 .DS_Store
 .idea/
 .vscode/
+external/DEER/outputs/
+external/DEER/logs/
+external/DEER/__pycache__/
+external/DEER/**/__pycache__/
+*.jsonl
