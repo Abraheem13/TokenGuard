@@ -1,0 +1,7 @@
+INFO 07-06 07:01:14 [__init__.py:216] Automatically detected platform cuda.
+INFO 07-06 07:01:27 [utils.py:233] non-default args: {'trust_remote_code': True, 'dtype': 'bfloat16', 'seed': 44, 'max_model_len': 12288, 'disable_log_stats': True, 'model': 'Qwen/Qwen3-8B'}
+The argument `trust_remote_code` is to be used with Auto classes. It has no effect here and is ignored.
+INFO 07-06 07:01:28 [model.py:547] Resolved architecture: Qwen3ForCausalLM
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 07-06 07:01:28 [model.py:1510] Using max model len 12288
+INFO 07-06 07:01:30 [scheduler.py:205] Chunked prefill is enabled with max_num_batched_tokens=8192.
