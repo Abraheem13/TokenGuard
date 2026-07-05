@@ -33,11 +33,18 @@ spec = importlib.util.spec_from_file_location("w1stats", _here / "ntc_w1_stats.p
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1stats"] = S
 spec.loader.exec_module(S)
+import tokenguard.reasoning.datasets as _ds, importlib as _il
+_il.reload(_ds)
+S.is_correct = _ds.is_correct
 
 
 def analyse_file(path, warmup_frac, n_splits, eps_list):
     d = json.loads(Path(path).read_text())
     traces, bench = d["traces"], d["benchmark"]
+    # RESCORE natural_correct with the current (fixed) is_correct, since the
+    # saved field was written under an older scorer (AIME boxed-extraction bug).
+    for _t in traces:
+        _t["natural_correct"] = bool(S.is_correct(_t.get("natural_answer",""), _t["gold"], bench))
     fams = dict(S.FAMILIES)  # copy: MUR registration is per-file
     if S.enrich_probes_with_nll(traces):
         fams["MUR-mom"] = (S.mur_policy, [{"gamma": g} for g in (0.7, 0.8, 0.9)])
