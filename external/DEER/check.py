@@ -91,7 +91,7 @@ def read_jsonl(file_path):
 
 
 
-tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
+tokenizer = None  # set in __main__ after args parsed
 
 def infer(args):
     examples = load_data(args.data_name, args.split, args.data_dir)
@@ -168,4 +168,5 @@ def infer(args):
 
 if __name__ == "__main__":
     args = parse_args()
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     infer(args)
