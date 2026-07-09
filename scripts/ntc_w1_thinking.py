@@ -48,6 +48,8 @@ def main() -> int:
     ap.add_argument("--tp-size", type=int, default=None)
     ap.add_argument("--max-model-len", type=int, default=12288)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--temperature", type=float, default=0.6,
+                    help="0.0 = greedy (DEER-matched); 0.6 = Qwen3 default")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -64,7 +66,8 @@ def main() -> int:
     for i in range(0, len(data), args.batch):
         chunk = data[i:i + args.batch]
         gens = runner.generate_thinking([ex["question"] for ex in chunk],
-                                        max_tokens=args.max_think)
+                                        max_tokens=args.max_think,
+                                        temperature=args.temperature)
         # build ALL probe jobs for this chunk, run in one vLLM call
         jobs, owners = [], []
         ckpts_per_q = []
