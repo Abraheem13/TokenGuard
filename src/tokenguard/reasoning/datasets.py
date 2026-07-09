@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 
 def load_benchmark(name: str, split: str = "test", limit: int | None = None):
@@ -112,9 +113,46 @@ def _norm(s: str) -> str:
         return s.lower()
 
 
+# --- DEER grader adoption (sympy equivalence for math/aime) --------------
+_DEER_GRADER = "unset"
+
+def _get_deer_grader():
+    global _DEER_GRADER
+    if _DEER_GRADER == "unset":
+        try:
+            import sys as _sys
+            _deer = Path(__file__).resolve().parents[3] / "external" / "DEER"
+            (_deer / "utils" / "__init__.py").touch(exist_ok=True)
+            _sys.path.insert(0, str(_deer))
+            from utils.grader import math_equal as _me
+            _DEER_GRADER = _me
+        except Exception:
+            _DEER_GRADER = None
+    return _DEER_GRADER
+
+
+from functools import lru_cache as _lru
+
+@_lru(maxsize=200000)
+def _graded_equal(p: str, g: str) -> bool:
+    me = _get_deer_grader()
+    if me is None:
+        return False
+    try:
+        return bool(me(p, g, timeout=True))
+    except Exception:
+        return False
+
+
 def is_correct(pred: str, gold: str, benchmark: str) -> bool:
     p = extract_answer(pred, benchmark)
-    return _norm(p) == _norm(gold)
+    if _norm(p) == _norm(gold):
+        return True
+    # sympy equivalence (DEER grader) for open-math benchmarks only
+    if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024",
+                     "gsm8k") and p and gold:
+        return _graded_equal(p, gold)
+    return False
 
 
 def _load_aime24(limit):
