@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import json
 from pathlib import Path
 
 
@@ -133,15 +134,68 @@ def _get_deer_grader():
 
 from functools import lru_cache as _lru
 
+import signal as _signal
+
+
+def _alarm_handler(signum, frame):
+    raise TimeoutError("grader timeout")
+
+
+# GRADER_DISK_CACHE: persisted verdicts => perfectly reproducible numbers
+_GC_PATH = Path(__file__).resolve().parents[3] / "experiments" / "ntc" / "grader_cache.json"
+_GC = None
+_GC_DIRTY = False
+
+
+def _gc_load():
+    global _GC
+    if _GC is None:
+        try:
+            _GC = json.loads(_GC_PATH.read_text())
+        except Exception:
+            _GC = {}
+        import atexit
+        atexit.register(_gc_flush)
+    return _GC
+
+
+def _gc_flush():
+    global _GC_DIRTY
+    if _GC_DIRTY and _GC is not None:
+        try:
+            _GC_PATH.parent.mkdir(parents=True, exist_ok=True)
+            _GC_PATH.write_text(json.dumps(_GC))
+            _GC_DIRTY = False
+        except Exception:
+            pass
+
+
 @_lru(maxsize=200000)
 def _graded_equal(p: str, g: str) -> bool:
+    gc = _gc_load()
+    key = p + "\x1f" + g
+    if key in gc:
+        return bool(gc[key])
+    v = _graded_equal_compute(p, g)
+    global _GC_DIRTY
+    gc[key] = bool(v)
+    _GC_DIRTY = True
+    return v
+
+
+def _graded_equal_compute(p: str, g: str) -> bool:
     me = _get_deer_grader()
     if me is None:
         return False
+    old_h = _signal.signal(_signal.SIGALRM, _alarm_handler)
+    _signal.alarm(5)
     try:
-        return bool(me(p, g, timeout=True))
+        return bool(me(p, g, timeout=False))
     except Exception:
         return False
+    finally:
+        _signal.alarm(0)
+        _signal.signal(_signal.SIGALRM, old_h)
 
 
 def is_correct(pred: str, gold: str, benchmark: str) -> bool:
