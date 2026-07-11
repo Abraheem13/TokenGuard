@@ -4,8 +4,8 @@ token counts are ONLINE cost incl. all probe/trial tokens)
 
 | model | benchmark | vanilla-BF acc@tok | DEER official acc@tok | AGREE(m=3) acc@tok | NTC-full† acc@tok | NTC-full pick |
 |---|---|---|---|---|---|---|
-| Qwen3-4B | math500 (n=500) | 0.746 @ 5193 | 0.920 @ 3539 | 0.680 @ 2638 | 0.693 @ 5353 | NTC-conf{'theta': 0.99} |
-| Qwen3-8B | math500 (n=500) | 0.752 @ 5452 | 0.930 @ 2946 | 0.684 @ 2771 | 0.693 @ 2894 | NTC-v2{'m': 3, 'theta': 0.5} |
+| Qwen3-4B | math500 (n=500) | 0.852 @ 5193 | 0.920 @ 3539 | 0.744 @ 2638 | 0.783 @ 5353 | NTC-conf{'theta': 0.99} |
+| Qwen3-8B | math500 (n=500) | 0.848 @ 5452 | 0.930 @ 2946 | 0.752 @ 2771 | 0.800 @ 5039 | EAT{'delta': 0.0001} |
 | Qwen3-4B | gpqa_diamond (n=198) | 0.490 @ 10363 | 0.545 @ 7536 | 0.364 @ 3396 | 0.429 @ 5574 | MUR-mom{'gamma': 0.9} |
 | Qwen3-8B | gpqa_diamond (n=198) | 0.571 @ 10310 | 0.576 @ 8872 | 0.359 @ 3746 | 0.504 @ 9695 | EAT{'delta': 0.0001} |
 | Qwen3-4B | aime24 (n=30) | 0.600 @ 11589 | 0.667 @ 10535 | 0.333 @ 6272 | 0.611 @ 10751 | DEER{'lam': 0.99} |
