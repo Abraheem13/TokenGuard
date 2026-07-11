@@ -39,7 +39,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", default="Qwen/Qwen3-4B")
     ap.add_argument("--benchmark", default="math500",
-                    choices=["gsm8k", "math500", "gpqa_diamond", "aime24"])
+                    choices=["gsm8k", "math500", "gpqa_diamond", "aime24", "aime25"])
     ap.add_argument("--limit", type=int, default=100)
     ap.add_argument("--max-think", type=int, default=6144)
     ap.add_argument("--probe-every", type=int, default=256)
@@ -58,6 +58,7 @@ def main() -> int:
                             f"{args.model.split('/')[-1]}{suffix}.json")
     PROMPT_INSTR = {
         "math500": "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
+        "aime25":  "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
         "aime24":  "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
         "gsm8k":   "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
         "gpqa_diamond": "\n\nPlease reason step by step, then answer with only the letter of the correct option within \\boxed{}.",

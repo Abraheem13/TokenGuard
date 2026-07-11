@@ -17,6 +17,8 @@ def load_benchmark(name: str, split: str = "test", limit: int | None = None):
         return _load_gpqa_diamond(limit)
     if name in ("aime24", "aime-24", "aime2024"):
         return _load_aime24(limit)
+    if name in ("aime25", "aime-25", "aime2025"):
+        return _load_aime25(limit)
     raise ValueError(f"unknown benchmark {name!r}")
 
 
@@ -54,11 +56,17 @@ def _load_gpqa_diamond(limit):
         correct = ex["Correct Answer"]
         incorrect = [ex["Incorrect Answer 1"], ex["Incorrect Answer 2"],
                      ex["Incorrect Answer 3"]]
-        options = [correct] + incorrect
+        # GPQA_SHUFFLE: deterministic per-item option shuffle (no position bias)
+        import random as _random
+        all4 = [correct] + incorrect
+        order = [0, 1, 2, 3]
+        _random.Random(1234 + i).shuffle(order)
+        options = [all4[j] for j in order]
         letters = ["A", "B", "C", "D"]
+        ans_letter = letters[order.index(0)]
         q = ex["Question"] + "\n" + "\n".join(
             f"{letters[j]}) {opt}" for j, opt in enumerate(options))
-        out.append({"id": f"gpqa-{i}", "question": q, "answer": "A",
+        out.append({"id": f"gpqa-{i}", "question": q, "answer": ans_letter,
                     "options": options})
     return out
 
@@ -76,7 +84,7 @@ def extract_answer(text: str, benchmark: str) -> str:
                 return m[0].replace(",", "")
         nums = _NUM.findall(text)
         return nums[-1].replace(",", "") if nums else ""
-    if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024"):
+    if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024", "aime25", "aime-25", "aime2025"):
         return _extract_boxed(text)
     if benchmark in ("gpqa_diamond", "gpqa"):
         m = re.findall(r"\b([A-D])\b", text.upper())
@@ -204,7 +212,7 @@ def is_correct(pred: str, gold: str, benchmark: str) -> bool:
         return True
     # sympy equivalence (DEER grader) for open-math benchmarks only
     if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024",
-                     "gsm8k") and p and gold:
+                     "gsm8k", "aime25", "aime-25", "aime2025") and p and gold:
         return _graded_equal(p, gold)
     return False
 
@@ -226,4 +234,34 @@ def _load_aime24(limit):
             break
         q, a = get(ex)
         out.append({"id": f"aime24-{i}", "question": q, "answer": a})
+    return out
+
+
+def _load_aime25(limit):
+    """AIME 2025 (30 problems). Primary: DEER's local jsonl; HF fallback."""
+    import json as _json
+    local = Path(__file__).resolve().parents[3] / "external" / "DEER" / "data" / "aime25" / "test.jsonl"
+    out = []
+    if local.exists():
+        for i, line in enumerate(local.read_text().splitlines()):
+            if limit and i >= limit:
+                break
+            ex = _json.loads(line)
+            q = ex.get("problem") or ex.get("question") or ex.get("Problem")
+            a = ex.get("answer") or ex.get("expected_answer") or ex.get("Answer")
+            out.append({"id": f"aime25-{i}", "question": str(q),
+                        "answer": str(a).strip()})
+        return out
+    from datasets import load_dataset
+    try:
+        ds = load_dataset("math-ai/aime25", split="test")
+    except Exception:
+        ds = load_dataset("opencompass/AIME2025", "AIME2025-I", split="test")
+    for i, ex in enumerate(ds):
+        if limit and i >= limit:
+            break
+        q = ex.get("problem") or ex.get("question")
+        a = ex.get("answer") or ex.get("expected_answer")
+        out.append({"id": f"aime25-{i}", "question": str(q),
+                    "answer": str(a).strip()})
     return out
