@@ -56,7 +56,16 @@ def main() -> int:
     suffix = "" if args.seed == 42 else f"_s{args.seed}"
     out_path = args.out or (f"experiments/ntc/w1_{args.benchmark}_"
                             f"{args.model.split('/')[-1]}{suffix}.json")
+    PROMPT_INSTR = {
+        "math500": "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
+        "aime24":  "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
+        "gsm8k":   "\n\nPlease reason step by step, and put your final answer within \\boxed{}.",
+        "gpqa_diamond": "\n\nPlease reason step by step, then answer with only the letter of the correct option within \\boxed{}.",
+    }
     data = load_benchmark(args.benchmark, limit=args.limit)
+    instr = PROMPT_INSTR.get(args.benchmark, "")
+    for ex in data:
+        ex["question"] = ex["question"] + instr
     runner = ThinkingRunner(model_name=args.model,
                             tensor_parallel_size=args.tp_size,
                             max_model_len=args.max_model_len, seed=args.seed)
