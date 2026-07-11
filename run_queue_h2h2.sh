@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# H2H v2: re-run with the standard boxed-instruction prompt (DEER-matched).
+set -e
+PART="gpu-2c-l40s-1g"
+DRY="${1:-}"
+T="python scripts/ntc_w1_thinking.py"
+submit () {
+  local name="$1" hours="$2" cmd="$3"
+  local f="/tmp/job_${name}.sbatch"
+  cat > "$f" << EOF
+#!/bin/bash
+#SBATCH --job-name=${name}
+#SBATCH --partition=${PART}
+#SBATCH --time=${hours}:00:00
+#SBATCH --output=experiments/ntc/slurm-%x-%j.log
+cd ~/TokenGuard
+source .venv/bin/activate
+${cmd}
+echo "JOB DONE ${name}"
+EOF
+  if [ "$DRY" = "--dry" ]; then echo "--- $f ---"; cat "$f"; echo;
+  else sbatch "$f"; fi
+}
+for M in 4B 8B; do
+  submit hh2_m500_${M} 8 "$T --model Qwen/Qwen3-${M} --benchmark math500 --limit 500 --max-think 16384 --batch 10 --tp-size 1 --max-model-len 24576 --temperature 0.0 --out experiments/ntc/h2h2_math500_Qwen3-${M}.json"
+  submit hh2_gpqa_${M} 7 "$T --model Qwen/Qwen3-${M} --benchmark gpqa_diamond --limit 198 --max-think 16384 --batch 10 --tp-size 1 --max-model-len 24576 --temperature 0.0 --out experiments/ntc/h2h2_gpqa_Qwen3-${M}.json"
+  submit hh2_aime_${M} 4 "$T --model Qwen/Qwen3-${M} --benchmark aime24 --limit 30 --max-think 16384 --batch 8 --tp-size 1 --max-model-len 24576 --temperature 0.0 --out experiments/ntc/h2h2_aime24_Qwen3-${M}.json"
+done
+echo "H2H v2 queued (6 jobs, standard prompt)."

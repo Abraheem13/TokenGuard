@@ -84,6 +84,20 @@ def main() -> int:
                                                      t["gold"], bench))
         van_acc = float(np.mean([t["natural_correct"] for t in traces]))
         van_tok = float(np.mean([t["n_total_tokens"] for t in traces]))
+        # budget-forced vanilla (standard practice; mirrors DEER's think_ratio
+        # forcing): if the trace hit the cap without a natural answer, use the
+        # LAST probe's forced answer (already generated — pure post-processing)
+        bf_ok, bf_tok = [], []
+        for t in traces:
+            if t["natural_correct"] or not t["probes"]:
+                bf_ok.append(t["natural_correct"]); bf_tok.append(t["n_total_tokens"])
+            elif not t.get("natural_answer", "").strip():
+                lp = t["probes"][-1]
+                bf_ok.append(S.is_correct(lp["answer"], t["gold"], bench))
+                bf_tok.append(t["n_total_tokens"] + lp["n_probe_tokens"])
+            else:
+                bf_ok.append(t["natural_correct"]); bf_tok.append(t["n_total_tokens"])
+        vbf_acc, vbf_tok = float(np.mean(bf_ok)), float(np.mean(bf_tok))
 
         # AGREE m=3 fixed default on FULL set (mirror of DEER's fixed 0.95)
         ag_acc, ag_tok = full_set_policy(traces, bench, S.agree_policy,
@@ -105,12 +119,13 @@ def main() -> int:
         rows.append({
             "model": model, "bench": bench, "n": n,
             "van_acc": van_acc, "van_tok": van_tok,
+            "vbf_acc": vbf_acc, "vbf_tok": vbf_tok,
             "deer_acc": deer[0], "deer_tok": deer[1],
             "ag_acc": ag_acc, "ag_tok": ag_tok,
             "nf_acc": nf_acc, "nf_tok": nf_tok, "nf_pick": f"{gfam}{gkw}",
             "ev_van_tok": ev_van_tok,
         })
-        print(f"[done] {model} {bench}: vanilla {van_acc:.3f}@{van_tok:.0f} | "
+        print(f"[done] {model} {bench}: vanilla {van_acc:.3f} (BF {vbf_acc:.3f}) | "
               f"AGREE {ag_acc:.3f}@{ag_tok:.0f} | DEER {deer[0]:.3f}@{deer[1]:.0f} | "
               f"NTC-full† {nf_acc:.3f}@{nf_tok:.0f} ({gfam})")
 
@@ -118,12 +133,12 @@ def main() -> int:
           "(same models, data, 16k thinking budget, greedy decoding, sympy grader;",
           "token counts are ONLINE cost incl. all probe/trial tokens)",
           "",
-          "| model | benchmark | vanilla acc@tok | DEER official acc@tok "
+          "| model | benchmark | vanilla-BF acc@tok | DEER official acc@tok "
           "| AGREE(m=3) acc@tok | NTC-full† acc@tok | NTC-full pick |",
           "|---|---|---|---|---|---|---|"]
     for r in rows:
         md.append(f"| {r['model']} | {r['bench']} (n={r['n']}) "
-                  f"| {r['van_acc']:.3f} @ {r['van_tok']:.0f} "
+                  f"| {r['vbf_acc']:.3f} @ {r['vbf_tok']:.0f} "
                   f"| {r['deer_acc']:.3f} @ {r['deer_tok']:.0f} "
                   f"| {r['ag_acc']:.3f} @ {r['ag_tok']:.0f} "
                   f"| {r['nf_acc']:.3f} @ {r['nf_tok']:.0f} "
