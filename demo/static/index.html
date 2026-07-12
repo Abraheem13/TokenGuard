@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TokenGuard — Adaptive Reasoning Budget Control</title>
+<style>
+:root{--bg:#0b0e14;--panel:#141a24;--panel2:#1b2330;--acc:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--tx:#e5edf5;--mut:#8ea0b5}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.5 'Segoe UI',system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--panel);border-bottom:1px solid #223}
+header h1{font-size:19px}header h1 b{color:var(--acc)}
+header .sub{color:var(--mut);font-size:12px}
+nav{margin-left:auto;display:flex;gap:8px}
+nav button{background:var(--panel2);color:var(--tx);border:1px solid #2a3547;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px}
+nav button.on{background:var(--acc);color:#04212f;font-weight:600}
+main{padding:18px 22px;max-width:1400px;margin:0 auto}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid #223;border-radius:12px;padding:14px}
+select,input[type=range]{background:var(--panel2);color:var(--tx);border:1px solid #2a3547;border-radius:8px;padding:7px 10px;font-size:13px}
+.btn{background:var(--acc);color:#04212f;border:0;padding:9px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px}
+.btn:disabled{opacity:.4}
+#think{white-space:pre-wrap;font:12.5px/1.55 ui-monospace,monospace;color:#b9c7d8;height:340px;overflow-y:auto;background:#0d1119;border:1px solid #223;border-radius:10px;padding:12px;flex:2;min-width:420px;position:relative}
+#tokbar{height:26px;background:#0d1119;border:1px solid #223;border-radius:8px;position:relative;margin-top:10px;overflow:visible}
+#tokfill{height:100%;width:0%;background:linear-gradient(90deg,#164e63,#38bdf8);border-radius:8px;transition:width .08s}
+.flag{position:absolute;top:-8px;width:2px;height:42px;background:var(--warn)}
+.flag span{position:absolute;top:44px;left:-40px;width:84px;font-size:10px;color:var(--warn);text-align:center;line-height:1.15}
+.flag.tg{background:var(--ok)}.flag.tg span{color:var(--ok);font-weight:700}
+.sig{flex:1;min-width:290px;display:flex;flex-direction:column;gap:10px}
+.gauge{background:var(--panel2);border-radius:10px;padding:10px}
+.gauge .lbl{font-size:11px;color:var(--mut);display:flex;justify-content:space-between}
+.gauge .bar{height:9px;background:#0d1119;border-radius:6px;margin-top:6px;overflow:hidden}
+.gauge .bar i{display:block;height:100%;width:0%;background:var(--acc);transition:width .2s}
+#saved{font-size:44px;font-weight:800;color:var(--ok);text-align:center}
+#savedlbl{text-align:center;color:var(--mut);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid #223}
+th{color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase}
+tr.tg{background:rgba(52,211,153,.08)}
+.pill{padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
+.pill.ok{background:rgba(52,211,153,.15);color:var(--ok)}.pill.bad{background:rgba(248,113,113,.15);color:var(--bad)}
+#dash .big{font-size:34px;font-weight:800;color:var(--acc)}
+.bench{margin:10px 0}.bench .name{font-size:12px;color:var(--mut)}
+.bench .track{height:20px;background:#0d1119;border-radius:6px;position:relative;margin-top:4px}
+.bench .cut{height:100%;background:linear-gradient(90deg,#065f46,#34d399);border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#04212f}
+.hid{display:none}
+h3{font-size:14px;margin-bottom:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+#q{color:var(--tx);font-size:13.5px;margin:8px 0;max-height:70px;overflow-y:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛡️ <b>TokenGuard</b> · Nested Token-Budget Control</h1>
+  <span class="sub">MSc Dissertation · Brunel University London</span>
+  <nav>
+    <button id="tabR" class="on" onclick="tab('R')">Live Replay</button>
+    <button id="tabD" onclick="tab('D')">Results Dashboard</button>
+  </nav>
+</header>
+<main>
+<div id="pgR">
+  <div class="card" style="margin-bottom:14px">
+    <div class="row" style="align-items:center">
+      <select id="run"></select>
+      <select id="qsel" style="max-width:520px"></select>
+      <label style="color:var(--mut);font-size:12px">speed <input id="spd" type="range" min="5" max="120" value="45" style="width:110px"></label>
+      <button class="btn" id="play" onclick="play()">▶ Run</button>
+    </div>
+    <div id="q"></div>
+  </div>
+  <div class="row">
+    <div id="think" class="card"><span style="color:var(--mut)">Select a question and press Run — the model's thinking will stream here…</span></div>
+    <div class="sig">
+      <div class="card">
+        <div id="saved">0%</div><div id="savedlbl">TOKENS SAVED (TokenGuard)</div>
+      </div>
+      <div class="gauge"><div class="lbl"><span>Trial-answer confidence</span><span id="cv">–</span></div><div class="bar"><i id="cb"></i></div></div>
+      <div class="gauge"><div class="lbl"><span>Answer agreement run</span><span id="av">–</span></div><div class="bar"><i id="ab" style="background:var(--ok)"></i></div></div>
+      <div class="gauge"><div class="lbl"><span>First-token entropy</span><span id="ev">–</span></div><div class="bar"><i id="eb" style="background:var(--warn)"></i></div></div>
+      <div class="gauge"><div class="lbl"><span>Trial answer</span><span id="ta" style="color:var(--acc);font-weight:700">–</span></div></div>
+      <div class="gauge"><div class="lbl"><span>Tokens generated</span><span id="tk">0</span></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div id="tokbar"><div id="tokfill"></div></div>
+    <table id="res"><thead><tr><th>Halting policy</th><th>Stops at</th><th>Answer</th><th>Correct</th><th>Tokens saved</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+<div id="pgD" class="hid">
+  <div class="row">
+    <div class="card" style="flex:1;min-width:330px">
+      <h3>Token savings at ε=0.01 accuracy SLO</h3><div id="dash"></div>
+    </div>
+    <div class="card" style="flex:1.4;min-width:420px">
+      <h3>Figure 1 — the collapse map (no fixed signal generalizes)</h3>
+      <img src="/api/fig1" style="width:100%;border-radius:8px" onerror="this.replaceWith('fig1 not generated yet')">
+    </div>
+  </div>
+</div>
+</main>
+<script>
+let TRACE=null, timer=null;
+const $=id=>document.getElementById(id);
+function tab(t){ $('pgR').classList.toggle('hid',t!=='R'); $('pgD').classList.toggle('hid',t!=='D');
+  $('tabR').classList.toggle('on',t==='R'); $('tabD').classList.toggle('on',t==='D'); if(t==='D')dash(); }
+async function init(){
+  const runs=await (await fetch('/api/runs')).json();
+  $('run').innerHTML=runs.map(r=>`<option>${r.name}</option>`).join('');
+  $('run').onchange=loadQs; await loadQs();
+}
+async function loadQs(){
+  const qs=await (await fetch('/api/questions?run='+encodeURIComponent($('run').value))).json();
+  $('qsel').innerHTML=qs.map((q,i)=>`<option value="${q.qid}">${i+1}. [${q.n_tokens} tok] ${q.preview.replace(/</g,'&lt;')}…</option>`).join('');
+}
+async function play(){
+  clearInterval(timer); $('play').disabled=true;
+  TRACE=await (await fetch(`/api/trace?run=${encodeURIComponent($('run').value)}&qid=${$('qsel').value}`)).json();
+  $('q').textContent='Q: '+TRACE.question;
+  document.querySelectorAll('.flag').forEach(f=>f.remove());
+  $('res').querySelector('tbody').innerHTML=''; $('saved').textContent='0%';
+  const T=TRACE.think_text, total=TRACE.n_total_tokens, ratio=T.length/Math.max(1,total);
+  let shown=0, ck=0;
+  const tgKey=Object.keys(TRACE.decisions).find(k=>k.startsWith('★'));
+  timer=setInterval(()=>{
+    const step=+$('spd').value*3*ratio; shown=Math.min(T.length,shown+step);
+    $('think').textContent=T.slice(0,shown); $('think').scrollTop=1e9;
+    const tok=Math.round(shown/ratio); $('tk').textContent=tok;
+    $('tokfill').style.width=(100*tok/total)+'%';
+    while(ck<TRACE.probes.length && TRACE.probes[ck].ckpt_tokens<=tok){
+      const p=TRACE.probes[ck];
+      $('cv').textContent=p.confidence.toFixed(3); $('cb').style.width=(100*p.confidence)+'%';
+      $('ev').textContent=p.entropy.toFixed(2); $('eb').style.width=Math.min(100,100*p.entropy/3)+'%';
+      let run=1; for(let j=ck;j>0;j--){ if(TRACE.probes[j].answer && TRACE.probes[j].answer===TRACE.probes[j-1].answer)run++; else break;}
+      $('av').textContent=run+' consecutive'; $('ab').style.width=Math.min(100,run*33)+'%';
+      $('ta').textContent=p.answer?p.answer.slice(0,26):'(none)';
+      for(const [name,d] of Object.entries(TRACE.decisions)){
+        if(d.halt_ckpt===ck){ dropFlag(name,d,100*p.ckpt_tokens/total);
+          if(name===tgKey){ $('saved').textContent=d.saved_pct+'%'; } addRow(name,d); } }
+      ck++;
+    }
+    if(shown>=T.length){ clearInterval(timer); finish(tgKey); }
+  },50);
+}
+function dropFlag(name,d,pct){
+  const f=document.createElement('div'); f.className='flag'+(name.startsWith('★')?' tg':'');
+  f.style.left=pct+'%'; f.innerHTML=`<span>${name.startsWith('★')?'★ TokenGuard':name.split(' ')[0]}<br>−${d.saved_pct}%</span>`;
+  $('tokbar').appendChild(f);
+}
+function addRow(name,d){
+  const tb=$('res').querySelector('tbody');
+  if([...tb.rows].some(r=>r.dataset.k===name))return;
+  const tr=document.createElement('tr'); tr.dataset.k=name; if(name.startsWith('★'))tr.className='tg';
+  tr.innerHTML=`<td>${name}</td><td>${d.halt_ckpt===null?'never (full think)':'checkpoint '+(d.halt_ckpt+1)+' · '+d.tokens+' tok'}</td>
+  <td style="font-family:monospace">${(d.answer||'').toString().slice(0,30).replace(/</g,'&lt;')}</td>
+  <td><span class="pill ${d.correct?'ok':'bad'}">${d.correct?'✓ correct':'✗ wrong'}</span></td>
+  <td style="color:${d.saved_pct>0?'var(--ok)':'var(--mut)'};font-weight:700">${d.saved_pct}%</td>`;
+  tb.appendChild(tr);
+}
+function finish(tgKey){
+  $('play').disabled=false;
+  for(const [name,d] of Object.entries(TRACE.decisions)) addRow(name,d);
+  addRow('Vanilla (full thinking)',{halt_ckpt:null,tokens:TRACE.n_total_tokens,
+    answer:TRACE.natural_answer.slice(-30),correct:TRACE.vanilla_correct,saved_pct:0});
+  const d=TRACE.decisions[tgKey]; if(d) $('saved').textContent=d.saved_pct+'%';
+}
+async function dash(){
+  const rows=await (await fetch('/api/summary')).json();
+  $('dash').innerHTML=rows.map(r=>`<div class="bench"><div class="name">${r.benchmark}
+   — vanilla ${(100*r.vanilla_acc).toFixed(1)}% → TokenGuard ${(100*r.tg_acc).toFixed(1)}%</div>
+   <div class="track"><div class="cut" style="width:${Math.max(6,r.tg_cut)}%">−${r.tg_cut.toFixed(0)}% tokens</div></div></div>`).join('');
+}
+init();
+</script>
+</body>
+</html>
