@@ -92,7 +92,7 @@ h3{font-size:14px;margin-bottom:8px;color:var(--mut);text-transform:uppercase;le
     </div>
     <div class="card" style="flex:1.4;min-width:420px">
       <h3>Figure 1 — the collapse map (no fixed signal generalizes)</h3>
-      <img src="/api/fig1" style="width:100%;border-radius:8px" onerror="this.replaceWith('fig1 not generated yet')">
+      <img src="api/fig1" style="width:100%;border-radius:8px" onerror="this.replaceWith('fig1 not generated yet')">
     </div>
   </div>
 </div>
@@ -103,17 +103,17 @@ const $=id=>document.getElementById(id);
 function tab(t){ $('pgR').classList.toggle('hid',t!=='R'); $('pgD').classList.toggle('hid',t!=='D');
   $('tabR').classList.toggle('on',t==='R'); $('tabD').classList.toggle('on',t==='D'); if(t==='D')dash(); }
 async function init(){
-  const runs=await (await fetch('/api/runs')).json();
+  const runs=await (await fetch('api/runs')).json();
   $('run').innerHTML=runs.map(r=>`<option>${r.name}</option>`).join('');
   $('run').onchange=loadQs; await loadQs();
 }
 async function loadQs(){
-  const qs=await (await fetch('/api/questions?run='+encodeURIComponent($('run').value))).json();
+  const qs=await (await fetch('api/questions?run='+encodeURIComponent($('run').value))).json();
   $('qsel').innerHTML=qs.map((q,i)=>`<option value="${q.qid}">${i+1}. [${q.n_tokens} tok] ${q.preview.replace(/</g,'&lt;')}…</option>`).join('');
 }
 async function play(){
   clearInterval(timer); $('play').disabled=true;
-  TRACE=await (await fetch(`/api/trace?run=${encodeURIComponent($('run').value)}&qid=${$('qsel').value}`)).json();
+  TRACE=await (await fetch(`api/trace?run=${encodeURIComponent($('run').value)}&qid=${$('qsel').value}`)).json();
   $('q').textContent='Q: '+TRACE.question;
   document.querySelectorAll('.flag').forEach(f=>f.remove());
   $('res').querySelector('tbody').innerHTML=''; $('saved').textContent='0%';
@@ -163,7 +163,7 @@ function finish(tgKey){
   const d=TRACE.decisions[tgKey]; if(d) $('saved').textContent=d.saved_pct+'%';
 }
 async function dash(){
-  const rows=await (await fetch('/api/summary')).json();
+  const rows=await (await fetch('api/summary')).json();
   $('dash').innerHTML=rows.map(r=>`<div class="bench"><div class="name">${r.benchmark}
    — vanilla ${(100*r.vanilla_acc).toFixed(1)}% → TokenGuard ${(100*r.tg_acc).toFixed(1)}%</div>
    <div class="track"><div class="cut" style="width:${Math.max(6,r.tg_cut)}%">−${r.tg_cut.toFixed(0)}% tokens</div></div></div>`).join('');
