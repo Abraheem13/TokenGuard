@@ -1,174 +1,237 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <title>TokenGuard — Adaptive Reasoning Budget Control</title>
 <style>
-:root{--bg:#0b0e14;--panel:#141a24;--panel2:#1b2330;--acc:#38bdf8;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;--tx:#e5edf5;--mut:#8ea0b5}
+:root{--bg:#0a0d13;--panel:#12161f;--panel2:#191f2b;--line:#232b3a;--acc:#5eb3f6;--acc2:#8b7cf6;--ok:#3ddc97;--bad:#ff7a7a;--warn:#ffc861;--tx:#eef3f9;--mut:#93a3b8}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--tx);font:14px/1.5 'Segoe UI',system-ui,sans-serif}
-header{display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--panel);border-bottom:1px solid #223}
-header h1{font-size:19px}header h1 b{color:var(--acc)}
-header .sub{color:var(--mut);font-size:12px}
+body{background:radial-gradient(1200px 600px at 70% -10%,#101a2e 0%,var(--bg) 55%);color:var(--tx);font:14px/1.55 'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:16px 26px;border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+header h1{font-size:20px;font-weight:700}header h1 b{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:12px}
 nav{margin-left:auto;display:flex;gap:8px}
-nav button{background:var(--panel2);color:var(--tx);border:1px solid #2a3547;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px}
-nav button.on{background:var(--acc);color:#04212f;font-weight:600}
-main{padding:18px 22px;max-width:1400px;margin:0 auto}
-.row{display:flex;gap:14px;flex-wrap:wrap}
-.card{background:var(--panel);border:1px solid #223;border-radius:12px;padding:14px}
-select,input[type=range]{background:var(--panel2);color:var(--tx);border:1px solid #2a3547;border-radius:8px;padding:7px 10px;font-size:13px}
-.btn{background:var(--acc);color:#04212f;border:0;padding:9px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px}
-.btn:disabled{opacity:.4}
-#think{white-space:pre-wrap;font:12.5px/1.55 ui-monospace,monospace;color:#b9c7d8;height:340px;overflow-y:auto;background:#0d1119;border:1px solid #223;border-radius:10px;padding:12px;flex:2;min-width:420px;position:relative}
-#tokbar{height:26px;background:#0d1119;border:1px solid #223;border-radius:8px;position:relative;margin-top:10px;overflow:visible}
-#tokfill{height:100%;width:0%;background:linear-gradient(90deg,#164e63,#38bdf8);border-radius:8px;transition:width .08s}
-.flag{position:absolute;top:-8px;width:2px;height:42px;background:var(--warn)}
-.flag span{position:absolute;top:44px;left:-40px;width:84px;font-size:10px;color:var(--warn);text-align:center;line-height:1.15}
-.flag.tg{background:var(--ok)}.flag.tg span{color:var(--ok);font-weight:700}
-.sig{flex:1;min-width:290px;display:flex;flex-direction:column;gap:10px}
-.gauge{background:var(--panel2);border-radius:10px;padding:10px}
-.gauge .lbl{font-size:11px;color:var(--mut);display:flex;justify-content:space-between}
-.gauge .bar{height:9px;background:#0d1119;border-radius:6px;margin-top:6px;overflow:hidden}
-.gauge .bar i{display:block;height:100%;width:0%;background:var(--acc);transition:width .2s}
-#saved{font-size:44px;font-weight:800;color:var(--ok);text-align:center}
-#savedlbl{text-align:center;color:var(--mut);font-size:12px}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
-th,td{padding:7px 9px;text-align:left;border-bottom:1px solid #223}
-th{color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase}
-tr.tg{background:rgba(52,211,153,.08)}
-.pill{padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
-.pill.ok{background:rgba(52,211,153,.15);color:var(--ok)}.pill.bad{background:rgba(248,113,113,.15);color:var(--bad)}
-#dash .big{font-size:34px;font-weight:800;color:var(--acc)}
-.bench{margin:10px 0}.bench .name{font-size:12px;color:var(--mut)}
-.bench .track{height:20px;background:#0d1119;border-radius:6px;position:relative;margin-top:4px}
-.bench .cut{height:100%;background:linear-gradient(90deg,#065f46,#34d399);border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#04212f}
+nav button{background:transparent;color:var(--mut);border:1px solid var(--line);padding:8px 18px;border-radius:10px;cursor:pointer;font-size:13px;transition:.15s}
+nav button.on{background:linear-gradient(90deg,#1c3450,#25304d);color:var(--tx);border-color:#33507a}
+#mode{font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
+#mode.live{color:var(--ok);border-color:#1d5c44}#mode.fake{color:var(--warn);border-color:#6b5518}
+main{padding:20px 26px;max-width:1440px;margin:0 auto}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;animation:fade .3s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+select,textarea{background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit}
+textarea{width:100%;min-height:74px;resize:vertical}
+.btn{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#071018;border:0;padding:11px 26px;border-radius:10px;font-weight:800;cursor:pointer;font-size:14px;transition:.15s}
+.btn:hover{filter:brightness(1.1)}.btn:disabled{opacity:.35}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:20px;padding:4px 12px;cursor:pointer}
+.chip:hover{color:var(--tx);border-color:var(--acc)}
+.stream{white-space:pre-wrap;font:12.5px/1.6 ui-monospace,monospace;color:#bccadb;height:360px;overflow-y:auto;background:#0b0f17;border:1px solid var(--line);border-radius:12px;padding:14px;flex:2;min-width:440px}
+.sig{flex:1;min-width:300px;display:flex;flex-direction:column;gap:10px}
+.gauge{background:var(--panel2);border-radius:12px;padding:11px 13px}
+.gauge .lbl{font-size:11.5px;color:var(--mut);display:flex;justify-content:space-between}
+.gauge .bar{height:8px;background:#0b0f17;border-radius:6px;margin-top:7px;overflow:hidden}
+.gauge .bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .25s}
+.saved{font-size:46px;font-weight:900;color:var(--ok);text-align:center;text-shadow:0 0 30px rgba(61,220,151,.25)}
+.savedlbl{text-align:center;color:var(--mut);font-size:11.5px;letter-spacing:.5px}
+.scale{margin-top:16px}
+.scale .track{height:34px;background:#0b0f17;border:1px solid var(--line);border-radius:10px;position:relative;overflow:hidden}
+.scale .used{height:100%;background:linear-gradient(90deg,#0e4d3a,var(--ok));width:0%;transition:width .3s;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-weight:800;color:#06231a;font-size:12px}
+.scale .ghost{position:absolute;top:0;left:0;height:100%;background:repeating-linear-gradient(45deg,#232b3a 0 8px,#1b2230 8px 16px);width:100%;z-index:-0;opacity:.5}
+.scale .cap{position:absolute;top:-22px;font-size:11px;color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+tr.tg{background:rgba(61,220,151,.07)}
+.pill{padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
+.pill.ok{background:rgba(61,220,151,.14);color:var(--ok)}.pill.bad{background:rgba(255,122,122,.14);color:var(--bad)}
 .hid{display:none}
-h3{font-size:14px;margin-bottom:8px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
-#q{color:var(--tx);font-size:13.5px;margin:8px 0;max-height:70px;overflow-y:auto}
-</style>
-</head>
-<body>
+h3{font-size:13px;margin-bottom:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px}
+.step{display:flex;gap:12px;margin:12px 0;align-items:flex-start}
+.step .n{min-width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#071018;font-weight:900;display:flex;align-items:center;justify-content:center}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.kpi{flex:1;min-width:150px;background:var(--panel2);border-radius:12px;padding:14px;text-align:center}
+.kpi .v{font-size:26px;font-weight:900;color:var(--acc)}.kpi .l{font-size:11px;color:var(--mut)}
+svg text{font:11.5px 'Segoe UI',sans-serif;fill:var(--tx)}
+</style></head><body>
 <header>
-  <h1>🛡️ <b>TokenGuard</b> · Nested Token-Budget Control</h1>
-  <span class="sub">MSc Dissertation · Brunel University London</span>
-  <nav>
-    <button id="tabR" class="on" onclick="tab('R')">Live Replay</button>
-    <button id="tabD" onclick="tab('D')">Results Dashboard</button>
-  </nav>
+ <h1>🛡️ <b>TokenGuard</b> · Nested Token-Budget Control</h1>
+ <span class="sub">MSc Dissertation · Brunel University London</span>
+ <span id="mode">…</span>
+ <nav>
+  <button id="tabL" class="on" onclick="tab('L')">⚡ Live</button>
+  <button id="tabR" onclick="tab('R')">🎬 Replay</button>
+  <button id="tabH" onclick="tab('H')">🧠 How it works</button>
+  <button id="tabD" onclick="tab('D')">📊 Results</button>
+ </nav>
 </header>
 <main>
-<div id="pgR">
-  <div class="card" style="margin-bottom:14px">
-    <div class="row" style="align-items:center">
-      <select id="run"></select>
-      <select id="qsel" style="max-width:520px"></select>
-      <label style="color:var(--mut);font-size:12px">speed <input id="spd" type="range" min="5" max="120" value="45" style="width:110px"></label>
-      <button class="btn" id="play" onclick="play()">▶ Run</button>
-    </div>
-    <div id="q"></div>
-  </div>
-  <div class="row">
-    <div id="think" class="card"><span style="color:var(--mut)">Select a question and press Run — the model's thinking will stream here…</span></div>
-    <div class="sig">
-      <div class="card">
-        <div id="saved">0%</div><div id="savedlbl">TOKENS SAVED (TokenGuard)</div>
-      </div>
-      <div class="gauge"><div class="lbl"><span>Trial-answer confidence</span><span id="cv">–</span></div><div class="bar"><i id="cb"></i></div></div>
-      <div class="gauge"><div class="lbl"><span>Answer agreement run</span><span id="av">–</span></div><div class="bar"><i id="ab" style="background:var(--ok)"></i></div></div>
-      <div class="gauge"><div class="lbl"><span>First-token entropy</span><span id="ev">–</span></div><div class="bar"><i id="eb" style="background:var(--warn)"></i></div></div>
-      <div class="gauge"><div class="lbl"><span>Trial answer</span><span id="ta" style="color:var(--acc);font-weight:700">–</span></div></div>
-      <div class="gauge"><div class="lbl"><span>Tokens generated</span><span id="tk">0</span></div></div>
+
+<div id="pgL">
+ <div class="card" style="margin-bottom:16px">
+  <textarea id="lprompt" placeholder="Ask any math question — the model will reason live, and TokenGuard will stop it the moment the answer has stabilised…">A robe takes 2 bolts of blue fiber and half that much white fiber. How many bolts in total does it take?</textarea>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+    <button class="btn" id="lgo" onclick="live()">⚡ Reason live</button>
+    <div class="chips">
+      <span class="chip" onclick="setP(this)">What is the sum of all integers from 1 to 200 that are divisible by 7?</span>
+      <span class="chip" onclick="setP(this)">A train travels 60 km at 30 km/h and returns at 60 km/h. What is its average speed?</span>
+      <span class="chip" onclick="setP(this)">How many trailing zeros does 100! have?</span>
     </div>
   </div>
-  <div class="card" style="margin-top:14px">
-    <div id="tokbar"><div id="tokfill"></div></div>
-    <table id="res"><thead><tr><th>Halting policy</th><th>Stops at</th><th>Answer</th><th>Correct</th><th>Tokens saved</th></tr></thead><tbody></tbody></table>
+ </div>
+ <div class="row">
+  <div id="lstream" class="stream card">Press <b>⚡ Reason live</b> — the model's chain of thought streams here in real time.</div>
+  <div class="sig">
+   <div class="card"><div class="saved" id="lsaved">–</div><div class="savedlbl">TOKENS SAVED · LIVE</div></div>
+   <div class="gauge"><div class="lbl"><span>Trial-answer confidence</span><span id="lcv">–</span></div><div class="bar"><i id="lcb"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>Answer agreement run</span><span id="lav">–</span></div><div class="bar"><i id="lab" style="background:var(--ok)"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>First-token entropy</span><span id="lev">–</span></div><div class="bar"><i id="leb" style="background:var(--warn)"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>Current trial answer</span><span id="lta" style="color:var(--acc);font-weight:800">–</span></div></div>
+   <div class="gauge"><div class="lbl"><span>Tokens so far</span><span id="ltk">0</span></div></div>
   </div>
+ </div>
+ <div class="card scale" style="margin-top:16px">
+  <h3>Token budget — TokenGuard vs full thinking</h3>
+  <div class="track"><div class="ghost"></div><div class="used" id="lbar">0</div></div>
+  <div id="lverdict" style="margin-top:12px;color:var(--mut)"></div>
+ </div>
 </div>
-<div id="pgD" class="hid">
-  <div class="row">
-    <div class="card" style="flex:1;min-width:330px">
-      <h3>Token savings at ε=0.01 accuracy SLO</h3><div id="dash"></div>
-    </div>
-    <div class="card" style="flex:1.4;min-width:420px">
-      <h3>Figure 1 — the collapse map (no fixed signal generalizes)</h3>
-      <img src="api/fig1" style="width:100%;border-radius:8px" onerror="this.replaceWith('fig1 not generated yet')">
-    </div>
+
+<div id="pgR" class="hid">
+ <div class="card" style="margin-bottom:14px">
+  <div class="row" style="align-items:center">
+   <select id="run"></select><select id="qsel" style="max-width:520px"></select>
+   <label style="color:var(--mut);font-size:12px">speed <input id="spd" type="range" min="5" max="120" value="45" style="width:110px"></label>
+   <button class="btn" id="play" onclick="play()">▶ Run</button>
+  </div><div id="q" style="margin-top:8px;font-size:13.5px;max-height:64px;overflow-y:auto"></div>
+ </div>
+ <div class="row">
+  <div id="think" class="stream card"><span style="color:var(--mut)">Pick a benchmark question and press Run…</span></div>
+  <div class="sig">
+   <div class="card"><div class="saved" id="saved">0%</div><div class="savedlbl">TOKENS SAVED (TokenGuard)</div></div>
+   <div class="gauge"><div class="lbl"><span>Trial-answer confidence</span><span id="cv">–</span></div><div class="bar"><i id="cb"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>Answer agreement run</span><span id="av">–</span></div><div class="bar"><i id="ab" style="background:var(--ok)"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>First-token entropy</span><span id="ev">–</span></div><div class="bar"><i id="eb" style="background:var(--warn)"></i></div></div>
+   <div class="gauge"><div class="lbl"><span>Trial answer</span><span id="ta" style="color:var(--acc);font-weight:800">–</span></div></div>
+   <div class="gauge"><div class="lbl"><span>Tokens generated</span><span id="tk">0</span></div></div>
   </div>
+ </div>
+ <div class="card" style="margin-top:14px">
+  <div id="tokbar" style="height:26px;background:#0b0f17;border:1px solid var(--line);border-radius:8px;position:relative"><div id="tokfill" style="height:100%;width:0%;background:linear-gradient(90deg,#164e63,var(--acc));border-radius:8px;transition:width .08s"></div></div>
+  <table id="res"><thead><tr><th>Halting policy</th><th>Stops at</th><th>Answer</th><th>Correct</th><th>Tokens saved</th></tr></thead><tbody></tbody></table>
+ </div>
+</div>
+
+<div id="pgH" class="hid">
+ <div class="row">
+  <div class="card" style="flex:1.3;min-width:480px">
+   <h3>Architecture — three nested timescales</h3>
+   <svg viewBox="0 0 760 400" style="width:100%">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5eb3f6"/></marker></defs>
+    <rect x="20" y="20" width="150" height="52" rx="10" fill="#191f2b" stroke="#33507a"/><text x="95" y="42" text-anchor="middle">User query</text><text x="95" y="58" text-anchor="middle" fill="#93a3b8" font-size="10">"solve …"</text>
+    <line x1="170" y1="46" x2="230" y2="46" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="232" y="20" width="200" height="52" rx="10" fill="#191f2b" stroke="#33507a"/><text x="332" y="42" text-anchor="middle">Reasoning stream</text><text x="332" y="58" text-anchor="middle" fill="#93a3b8" font-size="10">&lt;think&gt; … paragraph checkpoints</text>
+    <line x1="432" y1="46" x2="492" y2="46" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="494" y="12" width="246" height="68" rx="10" fill="#12261c" stroke="#1d5c44"/><text x="617" y="36" text-anchor="middle" fill="#3ddc97" font-weight="700">FAST tier · every checkpoint</text><text x="617" y="54" text-anchor="middle" font-size="10.5">force trial answer → confidence · agreement</text><text x="617" y="68" text-anchor="middle" font-size="10.5">entropy · NLL-momentum</text>
+    <line x1="617" y1="80" x2="617" y2="120" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="494" y="122" width="246" height="56" rx="10" fill="#241f33" stroke="#5a4a8f"/><text x="617" y="145" text-anchor="middle" fill="#8b7cf6" font-weight="700">MEDIUM tier · fusion</text><text x="617" y="163" text-anchor="middle" font-size="10.5">agreement × confidence gates (NTC-v2)</text>
+    <line x1="617" y1="178" x2="617" y2="218" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="460" y="220" width="280" height="72" rx="10" fill="#2a2113" stroke="#8f6b1d"/><text x="600" y="243" text-anchor="middle" fill="#ffc861" font-weight="700">SLOW tier · per-domain selection</text><text x="600" y="261" text-anchor="middle" font-size="10.5">paired cross-validation on warm-up:</text><text x="600" y="277" text-anchor="middle" font-size="10.5">pick cheapest signal within accuracy SLO ε</text>
+    <line x1="460" y1="256" x2="380" y2="256" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="220" y="228" width="158" height="56" rx="10" fill="#191f2b" stroke="#33507a"/><text x="299" y="252" text-anchor="middle">HALT decision</text><text x="299" y="268" text-anchor="middle" fill="#93a3b8" font-size="10">stop early or keep thinking</text>
+    <line x1="299" y1="284" x2="299" y2="330" stroke="#3ddc97" stroke-width="2" marker-end="url(#ar)"/>
+    <rect x="196" y="332" width="206" height="52" rx="10" fill="#12261c" stroke="#1d5c44"/><text x="299" y="354" text-anchor="middle" fill="#3ddc97" font-weight="800">Answer · 20–70% fewer tokens</text><text x="299" y="370" text-anchor="middle" font-size="10" fill="#93a3b8">3–5% probe overhead</text>
+    <rect x="20" y="120" width="150" height="164" rx="10" fill="#141a24" stroke="#232b3a"/><text x="95" y="144" text-anchor="middle" fill="#93a3b8" font-weight="700">JOINT tier</text><text x="95" y="166" text-anchor="middle" font-size="10.5">difficulty router:</text><text x="95" y="182" text-anchor="middle" font-size="10.5">small ↔ large model</text><text x="95" y="206" text-anchor="middle" font-size="10.5" fill="#3ddc97">+55% compute saved</text><text x="95" y="226" text-anchor="middle" font-size="10.5">at vanilla accuracy</text>
+    <line x1="95" y1="120" x2="95" y2="72" stroke="#5eb3f6" stroke-width="2" marker-end="url(#ar)"/>
+   </svg>
+  </div>
+  <div class="card" style="flex:1;min-width:340px">
+   <h3>Why a controller — not another signal</h3>
+   <div class="step"><div class="n">1</div><div><b>Every checkpoint, ask the model early.</b><br><span style="color:var(--mut)">Inject the answer cue mid-thought; the forced trial answer costs ~3–5% extra tokens.</span></div></div>
+   <div class="step"><div class="n">2</div><div><b>No single signal survives everywhere.</b><br><span style="color:var(--mut)">Agreement beats full thinking on GSM8K (+4.5) but collapses on MCQ (−12.3) and AIME (−24.6). Confidence is safe but barely saves. Proven across 6 benchmarks × 3 scales × 2 families.</span></div></div>
+   <div class="step"><div class="n">3</div><div><b>Learn which signal to trust, per domain.</b><br><span style="color:var(--mut)">A slow tier cross-validates all signals on a small warm-up and deploys the cheapest one within your accuracy budget ε — provably never worse than its best member on calibration.</span></div></div>
+   <div class="step"><div class="n">4</div><div><b>Route the model too.</b><br><span style="color:var(--mut)">The same nesting picks small vs large models per query — vanilla-level accuracy at half the compute.</span></div></div>
+   <div class="kpis">
+    <div class="kpi"><div class="v">+4.5</div><div class="l">pts ABOVE full thinking (GSM8K-8B)</div></div>
+    <div class="kpi"><div class="v">70%</div><div class="l">tokens cut at that accuracy</div></div>
+    <div class="kpi"><div class="v">3–5%</div><div class="l">probe overhead (DEER: 42–75%)</div></div>
+    <div class="kpi"><div class="v">55%</div><div class="l">compute saved with joint routing</div></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div id="pgD" class="hid">
+ <div class="row">
+  <div class="card" style="flex:1;min-width:330px"><h3>Token savings at ε=0.01 accuracy SLO</h3><div id="dash"></div></div>
+  <div class="card" style="flex:1.4;min-width:420px"><h3>Figure 1 — no fixed signal generalizes</h3>
+   <img src="api/fig1" style="width:100%;border-radius:10px" onerror="this.replaceWith('fig1 not generated')"></div>
+ </div>
 </div>
 </main>
 <script>
-let TRACE=null, timer=null;
 const $=id=>document.getElementById(id);
-function tab(t){ $('pgR').classList.toggle('hid',t!=='R'); $('pgD').classList.toggle('hid',t!=='D');
-  $('tabR').classList.toggle('on',t==='R'); $('tabD').classList.toggle('on',t==='D'); if(t==='D')dash(); }
-async function init(){
-  const runs=await (await fetch('api/runs')).json();
-  $('run').innerHTML=runs.map(r=>`<option>${r.name}</option>`).join('');
-  $('run').onchange=loadQs; await loadQs();
+function tab(t){for(const x of ['L','R','H','D']){$('pg'+x).classList.toggle('hid',x!==t);$('tab'+x).classList.toggle('on',x===t);}if(t==='D')dash();}
+function setP(el){$('lprompt').value=el.textContent;}
+async function status(){const s=await(await fetch('api/live_status')).json();const m=$('mode');
+ m.textContent=s.fake?'● simulated live':'● LIVE · '+s.model;m.className=s.fake?'fake':'live';}
+async function live(){
+ $('lgo').disabled=true;$('lstream').textContent='';$('lsaved').textContent='…';$('lverdict').textContent='';$('lbar').style.width='0%';$('lbar').textContent='';
+ const res=await fetch('api/live',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:$('lprompt').value})});
+ const rd=res.body.getReader(),dec=new TextDecoder();let buf='',haltTok=null;
+ while(true){const {value,done}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+  let i;while((i=buf.indexOf('\n\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+2);
+   if(!line.startsWith('data:'))continue;const e=JSON.parse(line.slice(5));
+   if(e.type==='chunk'){$('lstream').textContent+=e.text;$('lstream').scrollTop=1e9;}
+   if(e.type==='probe'){$('lcv').textContent=e.confidence.toFixed(3);$('lcb').style.width=(100*e.confidence)+'%';
+     $('lev').textContent=e.entropy.toFixed(2);$('leb').style.width=Math.min(100,100*e.entropy/3)+'%';
+     $('lav').textContent=e.agree_run+' consecutive';$('lab').style.width=Math.min(100,e.agree_run*33)+'%';
+     $('lta').textContent=e.answer?e.answer.slice(0,24):'(none)';$('ltk').textContent=e.ckpt_tokens;
+     if(!haltTok){$('lbar').style.width=Math.min(96,e.ckpt_tokens/40)+'%';}}
+   if(e.type==='halt'){haltTok=e.tokens;$('lstream').textContent+='\n\n━━━ ★ TokenGuard HALT — answer stabilised: '+e.answer+' ━━━\n(model continues below only to prove the comparison)\n\n';
+     if(e.saved_pct!==undefined)$('lsaved').textContent=e.saved_pct+'%';}
+   if(e.type==='final'){const v=e.vanilla_tokens;
+     if(haltTok){const pct=e.saved_pct??Math.round(100*(1-haltTok/v));$('lsaved').textContent=pct+'%';
+       $('lbar').style.width=(100*haltTok/v)+'%';$('lbar').textContent=haltTok+' tok (TokenGuard)';
+       $('lverdict').innerHTML=`Full thinking used <b>${v}</b> tokens · TokenGuard stopped at <b>${haltTok}</b> → <b style="color:var(--ok)">${pct}% saved</b>`+(e.match!==undefined?` · answers ${e.match?'<span class="pill ok">✓ match</span>':'<span class="pill bad">differ</span>'}`:'');}
+     else{$('lsaved').textContent='0%';$('lverdict').textContent='Model finished before any policy fired ('+v+' tokens).';}}
+   if(e.type==='status'&&e.question){$('lstream').textContent='Q: '+e.question+'\n\n';}
+ }}
+ $('lgo').disabled=false;
 }
-async function loadQs(){
-  const qs=await (await fetch('api/questions?run='+encodeURIComponent($('run').value))).json();
-  $('qsel').innerHTML=qs.map((q,i)=>`<option value="${q.qid}">${i+1}. [${q.n_tokens} tok] ${q.preview.replace(/</g,'&lt;')}…</option>`).join('');
-}
-async function play(){
-  clearInterval(timer); $('play').disabled=true;
-  TRACE=await (await fetch(`api/trace?run=${encodeURIComponent($('run').value)}&qid=${$('qsel').value}`)).json();
-  $('q').textContent='Q: '+TRACE.question;
-  document.querySelectorAll('.flag').forEach(f=>f.remove());
-  $('res').querySelector('tbody').innerHTML=''; $('saved').textContent='0%';
-  const T=TRACE.think_text, total=TRACE.n_total_tokens, ratio=T.length/Math.max(1,total);
-  let shown=0, ck=0;
-  const tgKey=Object.keys(TRACE.decisions).find(k=>k.startsWith('★'));
-  timer=setInterval(()=>{
-    const step=+$('spd').value*3*ratio; shown=Math.min(T.length,shown+step);
-    $('think').textContent=T.slice(0,shown); $('think').scrollTop=1e9;
-    const tok=Math.round(shown/ratio); $('tk').textContent=tok;
-    $('tokfill').style.width=(100*tok/total)+'%';
-    while(ck<TRACE.probes.length && TRACE.probes[ck].ckpt_tokens<=tok){
-      const p=TRACE.probes[ck];
-      $('cv').textContent=p.confidence.toFixed(3); $('cb').style.width=(100*p.confidence)+'%';
-      $('ev').textContent=p.entropy.toFixed(2); $('eb').style.width=Math.min(100,100*p.entropy/3)+'%';
-      let run=1; for(let j=ck;j>0;j--){ if(TRACE.probes[j].answer && TRACE.probes[j].answer===TRACE.probes[j-1].answer)run++; else break;}
-      $('av').textContent=run+' consecutive'; $('ab').style.width=Math.min(100,run*33)+'%';
-      $('ta').textContent=p.answer?p.answer.slice(0,26):'(none)';
-      for(const [name,d] of Object.entries(TRACE.decisions)){
-        if(d.halt_ckpt===ck){ dropFlag(name,d,100*p.ckpt_tokens/total);
-          if(name===tgKey){ $('saved').textContent=d.saved_pct+'%'; } addRow(name,d); } }
-      ck++;
-    }
-    if(shown>=T.length){ clearInterval(timer); finish(tgKey); }
-  },50);
-}
-function dropFlag(name,d,pct){
-  const f=document.createElement('div'); f.className='flag'+(name.startsWith('★')?' tg':'');
-  f.style.left=pct+'%'; f.innerHTML=`<span>${name.startsWith('★')?'★ TokenGuard':name.split(' ')[0]}<br>−${d.saved_pct}%</span>`;
-  $('tokbar').appendChild(f);
-}
-function addRow(name,d){
-  const tb=$('res').querySelector('tbody');
-  if([...tb.rows].some(r=>r.dataset.k===name))return;
-  const tr=document.createElement('tr'); tr.dataset.k=name; if(name.startsWith('★'))tr.className='tg';
-  tr.innerHTML=`<td>${name}</td><td>${d.halt_ckpt===null?'never (full think)':'checkpoint '+(d.halt_ckpt+1)+' · '+d.tokens+' tok'}</td>
-  <td style="font-family:monospace">${(d.answer||'').toString().slice(0,30).replace(/</g,'&lt;')}</td>
-  <td><span class="pill ${d.correct?'ok':'bad'}">${d.correct?'✓ correct':'✗ wrong'}</span></td>
-  <td style="color:${d.saved_pct>0?'var(--ok)':'var(--mut)'};font-weight:700">${d.saved_pct}%</td>`;
-  tb.appendChild(tr);
-}
-function finish(tgKey){
-  $('play').disabled=false;
-  for(const [name,d] of Object.entries(TRACE.decisions)) addRow(name,d);
-  addRow('Vanilla (full thinking)',{halt_ckpt:null,tokens:TRACE.n_total_tokens,
-    answer:TRACE.natural_answer.slice(-30),correct:TRACE.vanilla_correct,saved_pct:0});
-  const d=TRACE.decisions[tgKey]; if(d) $('saved').textContent=d.saved_pct+'%';
-}
-async function dash(){
-  const rows=await (await fetch('api/summary')).json();
-  $('dash').innerHTML=rows.map(r=>`<div class="bench"><div class="name">${r.benchmark}
-   — vanilla ${(100*r.vanilla_acc).toFixed(1)}% → TokenGuard ${(100*r.tg_acc).toFixed(1)}%</div>
-   <div class="track"><div class="cut" style="width:${Math.max(6,r.tg_cut)}%">−${r.tg_cut.toFixed(0)}% tokens</div></div></div>`).join('');
-}
+/* ---- replay (unchanged core) ---- */
+let TRACE=null,timer=null;
+async function init(){const runs=await(await fetch('api/runs')).json();
+ $('run').innerHTML=runs.map(r=>`<option>${r.name}</option>`).join('');$('run').onchange=loadQs;await loadQs();status();}
+async function loadQs(){const qs=await(await fetch('api/questions?run='+encodeURIComponent($('run').value))).json();
+ $('qsel').innerHTML=qs.map((q,i)=>`<option value="${q.qid}">${i+1}. [${q.n_tokens} tok] ${q.preview.replace(/</g,'&lt;')}…</option>`).join('');}
+async function play(){clearInterval(timer);$('play').disabled=true;
+ TRACE=await(await fetch(`api/trace?run=${encodeURIComponent($('run').value)}&qid=${$('qsel').value}`)).json();
+ $('q').textContent='Q: '+TRACE.question;document.querySelectorAll('.flag').forEach(f=>f.remove());
+ $('res').querySelector('tbody').innerHTML='';$('saved').textContent='0%';
+ const T=TRACE.think_text,total=TRACE.n_total_tokens,ratio=T.length/Math.max(1,total);let shown=0,ck=0;
+ const tgKey=Object.keys(TRACE.decisions).find(k=>k.startsWith('★'));
+ timer=setInterval(()=>{shown=Math.min(T.length,shown+ +$('spd').value*3*ratio);
+  $('think').textContent=T.slice(0,shown);$('think').scrollTop=1e9;
+  const tok=Math.round(shown/ratio);$('tk').textContent=tok;$('tokfill').style.width=(100*tok/total)+'%';
+  while(ck<TRACE.probes.length&&TRACE.probes[ck].ckpt_tokens<=tok){const p=TRACE.probes[ck];
+   $('cv').textContent=p.confidence.toFixed(3);$('cb').style.width=(100*p.confidence)+'%';
+   $('ev').textContent=p.entropy.toFixed(2);$('eb').style.width=Math.min(100,100*p.entropy/3)+'%';
+   let run=1;for(let j=ck;j>0;j--){if(TRACE.probes[j].answer&&TRACE.probes[j].answer===TRACE.probes[j-1].answer)run++;else break;}
+   $('av').textContent=run+' consecutive';$('ab').style.width=Math.min(100,run*33)+'%';
+   $('ta').textContent=p.answer?p.answer.slice(0,26):'(none)';
+   for(const[name,d]of Object.entries(TRACE.decisions)){if(d.halt_ckpt===ck){flag(name,d,100*p.ckpt_tokens/total);
+     if(name===tgKey)$('saved').textContent=d.saved_pct+'%';row(name,d);}}ck++;}
+  if(shown>=T.length){clearInterval(timer);fin(tgKey);}},50);}
+function flag(name,d,pct){const f=document.createElement('div');f.className='flag';
+ f.style.cssText=`position:absolute;top:-8px;left:${pct}%;width:2px;height:42px;background:${name.startsWith('★')?'var(--ok)':'var(--warn)'}`;
+ f.innerHTML=`<span style="position:absolute;top:44px;left:-40px;width:84px;font-size:10px;text-align:center;color:${name.startsWith('★')?'var(--ok)':'var(--warn)'}">${name.startsWith('★')?'★ TokenGuard':name.split(' ')[0]}<br>−${d.saved_pct}%</span>`;
+ $('tokbar').appendChild(f);}
+function row(name,d){const tb=$('res').querySelector('tbody');if([...tb.rows].some(r=>r.dataset.k===name))return;
+ const tr=document.createElement('tr');tr.dataset.k=name;if(name.startsWith('★'))tr.className='tg';
+ tr.innerHTML=`<td>${name}</td><td>${d.halt_ckpt===null?'never (full think)':'checkpoint '+(d.halt_ckpt+1)+' · '+d.tokens+' tok'}</td><td style="font-family:monospace">${(d.answer||'').toString().slice(0,30).replace(/</g,'&lt;')}</td><td><span class="pill ${d.correct?'ok':'bad'}">${d.correct?'✓ correct':'✗ wrong'}</span></td><td style="color:${d.saved_pct>0?'var(--ok)':'var(--mut)'};font-weight:800">${d.saved_pct}%</td>`;
+ tb.appendChild(tr);}
+function fin(tgKey){$('play').disabled=false;for(const[n,d]of Object.entries(TRACE.decisions))row(n,d);
+ row('Vanilla (full thinking)',{halt_ckpt:null,tokens:TRACE.n_total_tokens,answer:TRACE.natural_answer.slice(-30),correct:TRACE.vanilla_correct,saved_pct:0});
+ const d=TRACE.decisions[tgKey];if(d)$('saved').textContent=d.saved_pct+'%';}
+async function dash(){const rows=await(await fetch('api/summary')).json();
+ $('dash').innerHTML=rows.map(r=>`<div style="margin:10px 0"><div style="font-size:12px;color:var(--mut)">${r.benchmark} — vanilla ${(100*r.vanilla_acc).toFixed(1)}% → TokenGuard ${(100*r.tg_acc).toFixed(1)}%</div><div style="height:20px;background:#0b0f17;border-radius:6px;margin-top:4px"><div style="height:100%;width:${Math.max(6,r.tg_cut)}%;background:linear-gradient(90deg,#0e4d3a,var(--ok));border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:800;color:#06231a">−${r.tg_cut.toFixed(0)}% tokens</div></div></div>`).join('');}
 init();
-</script>
-</body>
-</html>
+</script></body></html>
