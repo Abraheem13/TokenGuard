@@ -3,22 +3,58 @@
 ## Headline rows per benchmark (method | acc | cut)
 
 
+### GENSEEDS_a25_LCB.md
+  vanilla              0.450 ± 0.084  0.0 ± 0.0
+  AGREE                0.370 ± 0.011  49.8 ± 1.2
+  DEER                 0.487 ± 0.034  11.4 ± 4.4
+  MUR-mom              0.350 ± 0.016  16.3 ± 1.7
+  NTC-conf             0.483 ± 0.063  6.0 ± 1.7
+  NTC-full(e=0.01)     0.402 ± 0.023  23.8 ± 10.4
+  REFRAIN-SWUCB        0.470 ± 0.052  20.4 ± 1.3
+
+### GENSEEDS_a25_LCB2.md
+  vanilla              0.450 ± 0.084  0.0 ± 0.0
+  AGREE                0.370 ± 0.011  49.8 ± 1.2
+  DEER                 0.487 ± 0.034  11.4 ± 4.4
+  MUR-mom              0.350 ± 0.016  16.3 ± 1.7
+  NTC-conf             0.483 ± 0.063  6.0 ± 1.7
+  NTC-full(e=0.01)     0.400 ± 0.025  23.4 ± 10.2
+  REFRAIN-SWUCB        0.470 ± 0.052  20.4 ± 1.3
+
+### GENSEEDS_a25_POINT.md
+  vanilla              0.450 ± 0.084  0.0 ± 0.0
+  AGREE                0.350 ± 0.009  52.0 ± 1.2
+  DEER                 0.478 ± 0.025  20.0 ± 5.7
+  MUR-mom              0.335 ± 0.033  18.5 ± 2.7
+  NTC-conf             0.483 ± 0.052  10.7 ± 1.8
+  NTC-full(e=0.01)     0.385 ± 0.030  39.1 ± 10.3
+  REFRAIN-SWUCB        0.470 ± 0.052  20.4 ± 1.3
+
+### GENSEEDS_a25_POINT2.md
+  vanilla              0.450 ± 0.084  0.0 ± 0.0
+  AGREE                0.350 ± 0.009  52.0 ± 1.2
+  DEER                 0.478 ± 0.025  20.0 ± 5.7
+  MUR-mom              0.335 ± 0.033  18.5 ± 2.7
+  NTC-conf             0.483 ± 0.052  10.7 ± 1.8
+  NTC-full(e=0.01)     0.385 ± 0.030  39.1 ± 10.3
+  REFRAIN-SWUCB        0.470 ± 0.052  20.4 ± 1.3
+
 ### GENSEEDS_aime24_avg8.md
   vanilla              0.658 ± 0.045  0.0 ± 0.0
   AGREE                0.408 ± 0.077  47.4 ± 5.8
-  DEER                 0.600 ± 0.048  14.6 ± 2.4
-  MUR-mom              0.413 ± 0.069  20.8 ± 4.2
-  NTC-conf             0.628 ± 0.045  8.1 ± 1.8
-  NTC-full(e=0.01)     0.579 ± 0.053  19.0 ± 2.6
+  DEER                 0.623 ± 0.051  11.7 ± 3.5
+  MUR-mom              0.422 ± 0.071  20.1 ± 3.7
+  NTC-conf             0.629 ± 0.045  7.8 ± 2.0
+  NTC-full(e=0.01)     0.594 ± 0.053  16.5 ± 3.5
   REFRAIN-SWUCB        0.569 ± 0.046  20.3 ± 3.4
 
 ### GENSEEDS_aime25_avg8.md
   vanilla              0.459 ± 0.066  0.0 ± 0.0
-  AGREE                0.347 ± 0.045  47.5 ± 3.8
-  DEER                 0.459 ± 0.043  16.0 ± 6.0
-  MUR-mom              0.376 ± 0.054  19.7 ± 4.2
-  NTC-conf             0.467 ± 0.050  8.8 ± 2.1
-  NTC-full(e=0.01)     0.372 ± 0.041  33.4 ± 9.4
+  AGREE                0.362 ± 0.048  45.9 ± 3.6
+  DEER                 0.472 ± 0.040  8.5 ± 4.3
+  MUR-mom              0.396 ± 0.067  16.2 ± 1.3
+  NTC-conf             0.469 ± 0.060  5.5 ± 1.7
+  NTC-full(e=0.01)     0.401 ± 0.053  21.4 ± 6.9
   REFRAIN-SWUCB        0.431 ± 0.057  18.8 ± 2.2
 
 ### GENSEEDS_gpqa16k_Qwen3-4B.md
@@ -41,38 +77,38 @@
 
 ### GENSEEDS_gpqash_Qwen3-4B.md
   vanilla              0.544 ± 0.023  0.0 ± 0.0
-  AGREE                0.470 ± 0.006  71.7 ± 4.1
-  DEER                 0.522 ± 0.020  20.5 ± 8.6
-  MUR-mom              0.534 ± 0.023  9.3 ± 4.1
-  NTC-conf             0.531 ± 0.022  15.3 ± 7.5
-  NTC-full(e=0.01)     0.499 ± 0.023  35.5 ± 9.4
+  AGREE                0.471 ± 0.009  69.6 ± 3.0
+  DEER                 0.535 ± 0.021  5.2 ± 0.8
+  MUR-mom              0.537 ± 0.021  6.2 ± 1.6
+  NTC-conf             0.544 ± 0.023  0.7 ± 0.4
+  NTC-full(e=0.01)     0.540 ± 0.020  5.8 ± 1.2
   REFRAIN-SWUCB        0.515 ± 0.009  43.0 ± 0.8
 
 ### GENSEEDS_gpqash_Qwen3-8B.md
   vanilla              0.582 ± 0.013  0.0 ± 0.0
-  AGREE                0.459 ± 0.025  68.9 ± 1.3
-  DEER                 0.578 ± 0.013  3.4 ± 1.2
-  MUR-mom              0.566 ± 0.016  12.4 ± 0.4
-  NTC-conf             0.580 ± 0.012  1.9 ± 1.0
-  NTC-full(e=0.01)     0.560 ± 0.013  9.9 ± 2.2
+  AGREE                0.464 ± 0.017  67.9 ± 0.5
+  DEER                 0.579 ± 0.013  2.4 ± 0.5
+  MUR-mom              0.573 ± 0.020  8.9 ± 0.7
+  NTC-conf             0.579 ± 0.013  1.0 ± 0.2
+  NTC-full(e=0.01)     0.578 ± 0.012  2.7 ± 0.6
   REFRAIN-SWUCB        0.573 ± 0.014  8.1 ± 1.3
 
 ### GENSEEDS_gsm8k_Qwen3-4B.md
   vanilla              0.869 ± 0.013  0.0 ± 0.0
-  AGREE                0.889 ± 0.019  61.7 ± 5.5
-  DEER                 0.851 ± 0.015  34.6 ± 14.8
-  MUR-mom              0.858 ± 0.025  15.1 ± 3.6
-  NTC-conf             0.887 ± 0.017  55.0 ± 5.1
-  NTC-full(e=0.01)     0.861 ± 0.022  65.7 ± 3.9
+  AGREE                0.921 ± 0.014  56.9 ± 1.7
+  DEER                 0.865 ± 0.008  17.3 ± 1.6
+  MUR-mom              0.863 ± 0.016  10.4 ± 3.2
+  NTC-conf             0.872 ± 0.009  12.0 ± 2.7
+  NTC-full(e=0.01)     0.892 ± 0.021  25.9 ± 18.9
   REFRAIN-SWUCB        0.814 ± 0.009  53.9 ± 0.9
 
 ### GENSEEDS_gsm8k_Qwen3-8B.md
   vanilla              0.835 ± 0.009  0.0 ± 0.0
-  AGREE                0.880 ± 0.005  69.6 ± 1.1
-  DEER                 0.839 ± 0.016  34.4 ± 4.5
-  MUR-mom              0.839 ± 0.013  18.0 ± 3.0
-  NTC-conf             0.896 ± 0.014  45.6 ± 1.1
-  NTC-full(e=0.01)     0.877 ± 0.007  70.3 ± 0.1
+  AGREE                0.918 ± 0.007  59.4 ± 0.2
+  DEER                 0.836 ± 0.014  3.2 ± 1.9
+  MUR-mom              0.834 ± 0.010  14.0 ± 3.5
+  NTC-conf             0.858 ± 0.019  19.9 ± 9.2
+  NTC-full(e=0.01)     0.878 ± 0.004  43.3 ± 4.9
   REFRAIN-SWUCB        0.825 ± 0.012  37.1 ± 1.2
 
 ### GENSEEDS_math500_Qwen3-1.7B.md
@@ -81,25 +117,25 @@
   DEER                 0.661 ± 0.018  5.6 ± 0.6
   MUR-mom              0.639 ± 0.002  20.2 ± 0.9
   NTC-conf             0.712 ± 0.014  1.1 ± 0.3
-  NTC-full(e=0.01)     0.706 ± 0.008  34.3 ± 9.2
+  NTC-full(e=0.01)     0.735 ± 0.010  0.0 ± 0.0
   REFRAIN-SWUCB        0.527 ± 0.008  37.8 ± 1.2
 
 ### GENSEEDS_math500_Qwen3-4B.md
   vanilla              0.794 ± 0.005  0.0 ± 0.0
   AGREE                0.739 ± 0.004  51.0 ± 0.4
-  DEER                 0.734 ± 0.014  11.6 ± 0.8
-  MUR-mom              0.698 ± 0.002  17.2 ± 0.4
+  DEER                 0.738 ± 0.014  10.8 ± 0.6
+  MUR-mom              0.700 ± 0.003  16.9 ± 0.0
   NTC-conf             0.772 ± 0.004  1.9 ± 0.3
-  NTC-full(e=0.01)     0.747 ± 0.018  19.5 ± 10.0
+  NTC-full(e=0.01)     0.791 ± 0.001  0.2 ± 0.3
   REFRAIN-SWUCB        0.632 ± 0.015  41.4 ± 2.1
 
 ### GENSEEDS_math500_Qwen3-8B.md
   vanilla              0.758 ± 0.005  0.0 ± 0.0
-  AGREE                0.759 ± 0.013  52.8 ± 0.9
+  AGREE                0.772 ± 0.010  50.9 ± 1.1
   DEER                 0.712 ± 0.005  4.1 ± 0.4
-  MUR-mom              0.670 ± 0.010  19.8 ± 2.0
-  NTC-conf             0.739 ± 0.005  0.9 ± 0.4
-  NTC-full(e=0.01)     0.731 ± 0.009  50.2 ± 3.4
+  MUR-mom              0.676 ± 0.010  18.2 ± 1.9
+  NTC-conf             0.741 ± 0.004  0.7 ± 0.3
+  NTC-full(e=0.01)     0.755 ± 0.007  1.7 ± 2.4
   REFRAIN-SWUCB        0.618 ± 0.014  33.4 ± 2.6
 
 ### H2H_TABLE.md
@@ -112,6 +148,8 @@
 
 ## Figures frozen (paper_figures/)
   day5-shift-adaptation.png
+  fig1_collapse_map.png
+  fig2_prop2_validation.png
   pareto_gpqa_diamond_Qwen3-4B.png
   pareto_gsm8k_Qwen3-4B.png
   pareto_math500_Qwen3-1.7B.png
@@ -120,4 +158,4 @@
   routing_fig2_learned.png
   routing_fig3_contrastive.png
 
-Total figures: 8
+Total figures: 10
