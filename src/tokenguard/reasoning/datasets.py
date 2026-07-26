@@ -19,6 +19,8 @@ def load_benchmark(name: str, split: str = "test", limit: int | None = None):
         return _load_aime24(limit)
     if name in ("aime25", "aime-25", "aime2025"):
         return _load_aime25(limit)
+    if name in ("mmlu_pro", "mmlu-pro", "mmlupro"):
+        return _load_mmlu_pro(limit)
     raise ValueError(f"unknown benchmark {name!r}")
 
 
@@ -264,4 +266,33 @@ def _load_aime25(limit):
         a = ex.get("answer") or ex.get("expected_answer")
         out.append({"id": f"aime25-{i}", "question": str(q),
                     "answer": str(a).strip()})
+    return out
+
+
+def _load_mmlu_pro(limit):
+    """MMLU-Pro: up to 10 options per question (vs GPQA's 4).
+
+    Deterministic stratified subsample across categories so a 200-item run is
+    representative. Options are used in their native order (the gold index
+    already varies across items, so there is no position artifact to correct).
+    """
+    import random as _random
+    from datasets import load_dataset
+    ds = load_dataset("TIGER-Lab/MMLU-Pro", split="test")
+    idx = list(range(len(ds)))
+    _random.Random(4321).shuffle(idx)
+    letters = "ABCDEFGHIJ"
+    out = []
+    for i in idx:
+        if limit and len(out) >= limit:
+            break
+        ex = ds[i]
+        opts = [o for o in ex["options"] if o not in (None, "N/A", "")]
+        ai = ex.get("answer_index")
+        if ai is None or ai >= len(opts):
+            continue
+        q = ex["question"] + "\n" + "\n".join(
+            f"{letters[j]}) {o}" for j, o in enumerate(opts))
+        out.append({"id": f"mmlupro-{i}", "question": q,
+                    "answer": letters[ai], "options": opts})
     return out
