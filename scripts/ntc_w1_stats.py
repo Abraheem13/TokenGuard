@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import os as _os
 import numpy as np
 
 from tokenguard.reasoning.datasets import is_correct
@@ -193,6 +194,36 @@ def per_item(traces, bench, fn, kw):
     return np.array(ok), np.array(tok, dtype=float)
 
 
+def _norm_quantile(q):
+    """Inverse standard-normal CDF (Acklam rational approximation)."""
+    import math
+    if q <= 0.0:
+        return -8.0
+    if q >= 1.0:
+        return 8.0
+    a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
+         1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00]
+    b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
+         6.680131188771972e+01, -1.328068155288572e+01]
+    c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+         -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00]
+    d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
+         3.754408661907416e+00]
+    pl, ph = 0.02425, 1 - 0.02425
+    if q < pl:
+        x = math.sqrt(-2 * math.log(q))
+        return (((((c[0]*x+c[1])*x+c[2])*x+c[3])*x+c[4])*x+c[5]) / \
+               ((((d[0]*x+d[1])*x+d[2])*x+d[3])*x+1)
+    if q > ph:
+        x = math.sqrt(-2 * math.log(1 - q))
+        return -(((((c[0]*x+c[1])*x+c[2])*x+c[3])*x+c[4])*x+c[5]) / \
+                ((((d[0]*x+d[1])*x+d[2])*x+d[3])*x+1)
+    x = q - 0.5
+    r = x * x
+    return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*x / \
+           (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)
+
+
 def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
     """Slow-tier selection via REPEATED paired K-fold CV (evidence-tested on
     the real MATH-500/GPQA probe data).
@@ -224,14 +255,30 @@ def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
                          if len(f)]
                 ds += [float(ok[f].mean() - van_all[f].mean()) for f in folds]
             md = float(np.mean(ds))
-            cands.append({"kw": kw, "md": md, "tok": float(tok.mean())})
+            # paired per-item difference -> honest finite-sample SE
+            _dlt = ok - van_all
+            _se = float(np.std(_dlt, ddof=1) / np.sqrt(max(1, len(_dlt)))) \
+                if len(_dlt) > 1 else 1.0
+            cands.append({"kw": kw, "md": md, "se": _se,
+                          "tok": float(tok.mean())})
             gcands.append({"fam": fam, **cands[-1]})
-        feas = [c for c in cands if c["md"] >= -eps]
+        picks[fam] = None  # filled after the global Bonferroni correction
+    # LCB_SELECT: Bonferroni-corrected one-sided lower confidence bound over
+    # the whole candidate library (see module docstring).
+    _mode = _os.environ.get("TG_SELECT", "lcb").lower()
+    _delta = float(_os.environ.get("TG_DELTA", "0.1"))
+    _m = max(1, len(gcands))
+    _z = _norm_quantile(1.0 - _delta / _m)
+    for c in gcands:
+        c["lcb"] = c["md"] - _z * c["se"] if _mode == "lcb" else c["md"]
+    for fam in FAMILIES:
+        cands = [c for c in gcands if c["fam"] == fam]
+        feas = [c for c in cands if c["lcb"] >= -eps]
         picks[fam] = (min(feas, key=lambda c: c["tok"])["kw"] if feas
-                      else max(cands, key=lambda c: c["md"])["kw"])
-    gfeas = [c for c in gcands if c["md"] >= -eps]
+                      else max(cands, key=lambda c: c["lcb"])["kw"])
+    gfeas = [c for c in gcands if c["lcb"] >= -eps]
     g = (min(gfeas, key=lambda c: c["tok"]) if gfeas
-         else max(gcands, key=lambda c: c["md"]))
+         else max(gcands, key=lambda c: c["lcb"]))
     return picks, (g["fam"], g["kw"])
 
 
