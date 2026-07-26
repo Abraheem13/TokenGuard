@@ -230,6 +230,16 @@ def _norm_quantile(q):
            (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)
 
 
+def _t_quantile(q, df):
+    """Student-t quantile via Cornish-Fisher expansion of the normal quantile."""
+    z = _norm_quantile(q)
+    if df is None or df <= 2:
+        return z * 2.0
+    g1 = (z ** 3 + z) / (4.0 * df)
+    g2 = (5 * z ** 5 + 16 * z ** 3 + 3 * z) / (96.0 * df * df)
+    return z + g1 + g2
+
+
 def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
     """Slow-tier selection via REPEATED paired K-fold CV (evidence-tested on
     the real MATH-500/GPQA probe data).
@@ -274,7 +284,7 @@ def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
     _mode = _os.environ.get("TG_SELECT", "lcb").lower()
     _delta = float(_os.environ.get("TG_DELTA", "0.1"))
     _m = max(1, len(gcands))
-    _z = _norm_quantile(1.0 - _delta / _m)
+    _z = _t_quantile(1.0 - _delta / _m, max(2, n - 1))
     for c in gcands:
         c["lcb"] = c["md"] - _z * c["se"] if _mode == "lcb" else c["md"]
     for fam in FAMILIES:

@@ -38,7 +38,8 @@ _il.reload(_ds)
 S.is_correct = _ds.is_correct
 
 
-def analyse_file(path, warmup_frac, n_splits, eps_list):
+def analyse_file(path, warmup_frac, n_splits, eps_list,
+                 siblings=None):
     d = json.loads(Path(path).read_text())
     traces, bench = d["traces"], d["benchmark"]
     # RESCORE natural_correct with the current (fixed) is_correct, since the
@@ -61,7 +62,12 @@ def analyse_file(path, warmup_frac, n_splits, eps_list):
         for seed in range(n_splits):
             rng = np.random.default_rng(seed)
             idx = rng.permutation(n)
-            warm = [traces[i] for i in idx[:n_warm]]
+            widx = idx[:n_warm]
+            warm = [traces[i] for i in widx]
+            # pool the SAME question indices from sibling seed files: more
+            # calibration data with no evaluation question ever included
+            for sib in (siblings or []):
+                warm += [sib[i] for i in widx if i < len(sib)]
             ev = [traces[i] for i in idx[n_warm:]]
             vt = float(np.mean([t["n_total_tokens"] for t in ev]))
             acc["vanilla"].append(float(np.mean([t["natural_correct"] for t in ev])))
@@ -93,14 +99,30 @@ def main() -> int:
     ap.add_argument("--warmup-frac", type=float, default=0.4)
     ap.add_argument("--n-splits", type=int, default=10)
     ap.add_argument("--cv-eps", type=float, nargs="+", default=[0.01, 0.05])
+    ap.add_argument("--pool-calib", action="store_true",
+                    help="pool warm-up across seed files (for avg@k benchmarks)")
     ap.add_argument("--tag", default="run")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     per_file = []
     for pf in args.probes:
+        sibs = None
+        if args.pool_calib:
+            sibs = []
+            for other in args.probes:
+                if other == pf:
+                    continue
+                od = json.loads(Path(other).read_text())
+                ot = od["traces"]
+                for _t in ot:
+                    _t["natural_correct"] = bool(S.is_correct(
+                        _t.get("natural_answer", ""), _t["gold"], od["benchmark"]))
+                S.enrich_probes_with_nll(ot)
+                sibs.append(ot)
         model, bench, res = analyse_file(pf, args.warmup_frac,
-                                         args.n_splits, args.cv_eps)
+                                         args.n_splits, args.cv_eps,
+                                         siblings=sibs)
         per_file.append((pf, res))
         print(f"[done] {pf}")
 
