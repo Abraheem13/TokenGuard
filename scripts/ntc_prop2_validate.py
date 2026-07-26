@@ -1,17 +1,29 @@
 #!/usr/bin/env python
-"""P1 FIX #6 — empirical validation of Proposition 2 (spurious agreement).
+"""P1 FIX #6 (v2) — empirical validation of Proposition 2, done correctly.
 
-Prop. 2 models trial answers on an undecided item as a stationary process over
-an effective answer set A with self-transition (persistence) rho and modal mass
-q_max, giving a spurious m-run probability bounded below by
+v1 was wrong in two ways and is superseded:
+  * the bound (K-m+1)*rho^(m-1)*q_max exceeded 1 in every setting, so after
+    clipping it carried no information (and a rank correlation over identical
+    values silently reduced to input-file order -- a spurious result);
+  * rho and q_max were estimated over ALL trial answers, so a model that
+    converges CORRECTLY (GSM8K) scored as highly "spurious", which is the
+    opposite of what the proposition is about.
 
-    P_spur(m, K) >= (K - m + 1) * rho^(m-1) * q_max
+Corrected formulation. Spurious agreement is agreement on a WRONG answer, so
+we estimate the stickiness of incorrect trial answers:
 
-Here we ESTIMATE rho, q_max and |A| directly from the recorded probe streams of
-every benchmark, compute the predicted bound, and correlate it with the
-OBSERVED agreement collapse (AGREE accuracy minus vanilla accuracy). A
-theory that predicts the ordering of collapse severity is far stronger than a
-post-hoc explanation.
+    rho_w  = P(a_{k+1} = a_k | a_k incorrect)        (persistence of an error)
+    q_w    = modal mass of incorrect answers among all probes of an item
+    P_spur = rho_w^(m-1) * q_w                        in [0, 1], no clipping
+
+and compare it against two observables, both estimated from the same traces:
+
+    lost-correct risk  = P(vanilla correct AND AGREE(m) halts on a wrong answer)
+    AGREE delta        = acc(AGREE) - acc(vanilla)   (points)
+
+Proposition 2 predicts P_spur to be monotone in the lost-correct risk and
+anti-monotone in the AGREE delta. Rank correlations use average ranks for
+ties, and we report n so the reader can judge the evidence.
 
     python scripts/ntc_prop2_validate.py --probes experiments/ntc/w1_*.json
 """
@@ -37,32 +49,56 @@ sys.modules["w1s"] = S
 spec.loader.exec_module(S)
 
 
-def stats_for(traces, bench, m=3):
-    """Estimate |A|, rho, q_max and the Prop-2 bound on UNDECIDED items."""
-    rhos, qs, sizes, Ks = [], [], [], []
+def rankdata(a):
+    """Ranks with average ties (avoids the degenerate all-equal case)."""
+    a = np.asarray(a, dtype=float)
+    order = np.argsort(a, kind="mergesort")
+    ranks = np.empty(len(a), dtype=float)
+    i = 0
+    while i < len(a):
+        j = i
+        while j + 1 < len(a) and a[order[j + 1]] == a[order[i]]:
+            j += 1
+        ranks[order[i:j + 1]] = 0.5 * (i + j) + 1.0
+        i = j + 1
+    return ranks
+
+
+def spearman(x, y):
+    rx, ry = rankdata(x), rankdata(y)
+    if np.std(rx) == 0 or np.std(ry) == 0:
+        return float("nan")
+    return float(np.corrcoef(rx, ry)[0, 1])
+
+
+def analyse(traces, bench, m=3):
+    rho_w, q_w, lost = [], [], []
     for t in traces:
         pr = [p for p in t["probes"] if p.get("answer")]
         if len(pr) < 2:
             continue
         ans = [p["answer"] for p in pr]
-        # "undecided" = the trace does not settle on the gold answer throughout
-        settled = all(S.is_correct(a, t["gold"], bench) for a in ans)
-        if settled:
-            continue
-        same = [1.0 if S.is_correct(ans[i], ans[i - 1], bench) else 0.0
-                for i in range(1, len(ans))]
-        cnt = Counter(ans)
-        rhos.append(float(np.mean(same)))
-        qs.append(cnt.most_common(1)[0][1] / len(ans))
-        sizes.append(len(cnt))
-        Ks.append(len(ans))
-    if not rhos:
+        wrong = [not S.is_correct(a, t["gold"], bench) for a in ans]
+        # persistence of an incorrect answer
+        pairs = [1.0 if S.is_correct(ans[i + 1], ans[i], bench) else 0.0
+                 for i in range(len(ans) - 1) if wrong[i]]
+        if pairs:
+            rho_w.append(float(np.mean(pairs)))
+        bad = [a for a, w in zip(ans, wrong) if w]
+        q_w.append(Counter(bad).most_common(1)[0][1] / len(ans) if bad else 0.0)
+        # observed lost-correct risk of AGREE(m) on this item
+        k = S.agree_policy(t["probes"], m=m, bm=bench)
+        if t["natural_correct"]:
+            halted_wrong = (k is not None and
+                            not S.is_correct(t["probes"][k]["answer"],
+                                             t["gold"], bench))
+            lost.append(1.0 if halted_wrong else 0.0)
+    if not rho_w:
         return None
-    rho, q, sz, K = (float(np.mean(rhos)), float(np.mean(qs)),
-                     float(np.mean(sizes)), float(np.mean(Ks)))
-    bound = max(0.0, (K - m + 1)) * (rho ** (m - 1)) * q
-    return {"rho": rho, "q_max": q, "eff_A": sz, "K": K,
-            "bound": min(1.0, bound), "n_undecided": len(rhos)}
+    r, q = float(np.mean(rho_w)), float(np.mean(q_w))
+    return {"rho_w": r, "q_w": q, "p_spur": (r ** (m - 1)) * q,
+            "lost": float(np.mean(lost)) if lost else float("nan"),
+            "n": len(traces)}
 
 
 def main() -> int:
@@ -80,51 +116,65 @@ def main() -> int:
         for t in traces:
             t["natural_correct"] = bool(
                 S.is_correct(t.get("natural_answer", ""), t["gold"], bench))
-        st = stats_for(traces, bench, a.m)
+        st = analyse(traces, bench, a.m)
         if st is None:
             continue
         van = float(np.mean([t["natural_correct"] for t in traces]))
         ok, _ = S.per_item(traces, bench, S.agree_policy, {"m": a.m})
-        delta = 100 * (float(np.mean(ok)) - van)
-        rows.append({"tag": f"{bench}/{model}", **st, "delta": delta})
-        print(f"{bench:14s} {model:12s} |A|~{st['eff_A']:.2f} rho={st['rho']:.3f} "
-              f"q={st['q_max']:.3f} bound={st['bound']:.3f}  observed AGREE "
-              f"delta={delta:+.1f} pts  (n_undec={st['n_undecided']})")
+        st.update(tag=f"{bench}/{model}",
+                  delta=100 * (float(np.mean(ok)) - van))
+        rows.append(st)
+        print(f"{bench:14s} {model:12s} rho_w={st['rho_w']:.3f} "
+              f"q_w={st['q_w']:.3f} P_spur={st['p_spur']:.3f} | "
+              f"lost-correct risk={st['lost']:.3f}  AGREE Δ={st['delta']:+.1f}")
+
+    s_risk = spearman([r["p_spur"] for r in rows], [r["lost"] for r in rows])
+    s_delta = spearman([r["p_spur"] for r in rows], [r["delta"] for r in rows])
+    print(f"\nn={len(rows)} settings")
+    print(f"Spearman(P_spur, lost-correct risk) = {s_risk:+.3f}  "
+          f"(positive supports Prop. 2)")
+    print(f"Spearman(P_spur, AGREE Δ)           = {s_delta:+.3f}  "
+          f"(negative supports Prop. 2)")
 
     if len(rows) >= 3:
-        x = np.array([r["bound"] for r in rows])
-        y = np.array([r["delta"] for r in rows])
-        rx, ry = np.argsort(np.argsort(x)), np.argsort(np.argsort(y))
-        rho_s = float(np.corrcoef(rx, ry)[0, 1])
-        print(f"\nSpearman(predicted bound, observed delta) = {rho_s:+.3f} "
-              f"(negative = theory predicts collapse ordering)")
-        fig, ax = plt.subplots(figsize=(6.4, 4.2))
-        ax.scatter(x, y, s=46, c="#c0392b")
-        for r in rows:
-            ax.annotate(r["tag"], (r["bound"], r["delta"]), fontsize=7,
-                        xytext=(4, 4), textcoords="offset points")
-        ax.axhline(0, color="#888", lw=.8)
-        ax.set_xlabel(f"Prop. 2 spurious-agreement bound (m={a.m})")
-        ax.set_ylabel("observed AGREE Δ accuracy (points)")
-        ax.set_title(f"Theory predicts collapse severity (Spearman {rho_s:+.2f})",
-                     fontsize=10)
+        fig, axes = plt.subplots(1, 2, figsize=(10.6, 4.3))
+        for ax, key, lbl, ttl in (
+                (axes[0], "lost", "observed lost-correct risk",
+                 f"Spearman {s_risk:+.2f}"),
+                (axes[1], "delta", "observed AGREE Δ accuracy (pts)",
+                 f"Spearman {s_delta:+.2f}")):
+            xs = [r["p_spur"] for r in rows]
+            ys = [r[key] for r in rows]
+            ax.scatter(xs, ys, s=44, c="#b5342b")
+            for r in rows:
+                ax.annotate(r["tag"].split("/")[0], (r["p_spur"], r[key]),
+                            fontsize=7, xytext=(4, 4),
+                            textcoords="offset points")
+            ax.set_xlabel(f"Prop. 2 spurious-agreement probability (m={a.m})")
+            ax.set_ylabel(lbl)
+            ax.set_title(ttl, fontsize=10)
+            if key == "delta":
+                ax.axhline(0, color="#888", lw=.8)
+        fig.suptitle("Error stickiness predicts agreement collapse", fontsize=11)
         fig.tight_layout()
         Path("paper_figures").mkdir(exist_ok=True)
         for e in ("png", "pdf"):
             fig.savefig(f"paper_figures/fig2_prop2_validation.{e}", dpi=300)
         print("figure: paper_figures/fig2_prop2_validation.png (+pdf)")
-    else:
-        rho_s = float("nan")
 
-    md = ["# Proposition 2 — empirical validation",
-          f"Estimated on undecided items only; m={a.m}.", "",
-          "| benchmark/model | eff. \\|A\\| | rho | q_max | K | bound | observed AGREE Δ |",
-          "|---|---|---|---|---|---|---|"]
+    md = ["# Proposition 2 — empirical validation (corrected estimator)",
+          f"rho_w / q_w estimated over INCORRECT trial answers only; m={a.m}.",
+          "", "| benchmark/model | rho_w | q_w | P_spur | lost-correct risk "
+          "| AGREE Δ (pts) | n |", "|---|---|---|---|---|---|---|"]
     for r in rows:
-        md.append(f"| {r['tag']} | {r['eff_A']:.2f} | {r['rho']:.3f} "
-                  f"| {r['q_max']:.3f} | {r['K']:.1f} | {r['bound']:.3f} "
-                  f"| {r['delta']:+.1f} |")
-    md += ["", f"Spearman(bound, observed Δ) = {rho_s:+.3f}"]
+        md.append(f"| {r['tag']} | {r['rho_w']:.3f} | {r['q_w']:.3f} "
+                  f"| {r['p_spur']:.3f} | {r['lost']:.3f} | {r['delta']:+.1f} "
+                  f"| {r['n']} |")
+    md += ["", f"n = {len(rows)} settings.",
+           f"Spearman(P_spur, lost-correct risk) = {s_risk:+.3f} "
+           "(positive supports Prop. 2).",
+           f"Spearman(P_spur, AGREE delta) = {s_delta:+.3f} "
+           "(negative supports Prop. 2)."]
     Path(a.out).write_text("\n".join(md) + "\n")
     print(f"table: {a.out}")
     return 0

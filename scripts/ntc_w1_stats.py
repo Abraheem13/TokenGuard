@@ -167,7 +167,13 @@ def refrain_swucb_stream(traces, bench, arms=(0.85, 0.90, 0.95, 0.99),
         ok_arr.append(ok); tok_arr.append(tok)
     return np.array(ok_arr), np.array(tok_arr, dtype=float)
 
+def never_halt_policy(probes, **kw):
+    """Null action: never halt (spend the full thinking budget)."""
+    return None
+
+
 FAMILIES = {
+    "NEVER-HALT": (never_halt_policy, [{}]),
     "DEER":     (deer_policy,     [{"lam": v} for v in (0.90, 0.95, 0.99)]),
     "EAT":      (eat_policy,      [{"delta": v} for v in (1e-2, 1e-3, 1e-4)]),
     "NTC-conf": (ntc_conf_policy, [{"theta": v} for v in (0.85, 0.90, 0.95, 0.99)]),
