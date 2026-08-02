@@ -89,7 +89,8 @@ def extract_answer(text: str, benchmark: str) -> str:
     if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024", "aime25", "aime-25", "aime2025"):
         return _extract_boxed(text)
     if benchmark in ("gpqa_diamond", "mmlu_pro", "mmlu-pro", "mmlupro", "gpqa"):
-        m = re.findall(r"\b([A-D])\b", text.upper())
+        _hi = "J" if benchmark in ("mmlu_pro", "mmlu-pro", "mmlupro") else "D"
+        m = re.findall(r"\b([A-" + _hi + r"])\b", text.upper())
         return m[-1] if m else ""
     return text.strip()
 
