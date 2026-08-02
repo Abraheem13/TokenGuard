@@ -13,17 +13,17 @@
 | math500_Qwen3-1.7B | 0.736 | -0.1 (0%) | -1.3 (3%) | -1.1 (48%) | -7.5 (6%) | -2.4 (1%) | -3.0 (11%) | -9.7 (20%) | -1.1 (48%) | -20.9 (38%) |
 | math500_Qwen3-4B | 0.794 | -0.3 (0%) | -0.9 (1%) | -5.5 (51%) | -5.6 (11%) | -2.2 (2%) | -1.8 (15%) | -9.4 (17%) | -5.8 (51%) | -16.2 (41%) |
 | math500_Qwen3-8B | 0.758 | -0.3 (2%) | -1.8 (13%) | +1.4 (51%) | -4.6 (4%) | -1.7 (1%) | -3.4 (17%) | -8.2 (18%) | +1.4 (51%) | -14.0 (33%) |
-| mmlupro_Qwen3-4B | 0.301 | -0.8 (13%) | -2.2 (36%) | -2.3 (38%) | -1.2 (26%) | -0.5 (7%) | -1.3 (23%) | -0.1 (9%) | -2.4 (38%) | -3.3 (59%) |
-| mmlupro_Qwen3-8B | 0.329 | -0.6 (18%) | -1.4 (30%) | -2.4 (35%) | -0.7 (11%) | +0.0 (10%) | -0.4 (20%) | -0.4 (12%) | -1.5 (28%) | -0.7 (15%) |
+| mmlupro_Qwen3-4B | 0.705 | -0.2 (4%) | -1.3 (14%) | -8.2 (65%) | -4.6 (23%) | -1.5 (5%) | -1.0 (16%) | +0.6 (8%) | -8.2 (65%) | -10.8 (55%) |
+| mmlupro_Qwen3-8B | 0.741 | -0.5 (6%) | -1.2 (17%) | -7.6 (65%) | -0.5 (3%) | -0.3 (4%) | -0.7 (13%) | +0.4 (11%) | -4.1 (59%) | -2.3 (15%) |
 
 ## Attainment rates (fraction of settings within the bound)
 
 - `NTC-full(e=0.01)` — within 1.0pt:   77%   within 2.5pt:   92%   within 5.0pt:  100%   worst: -2.6pt
 - `NTC-full(e=0.05)` — within 1.0pt:   38%   within 2.5pt:   77%   within 5.0pt:   92%   worst: -6.1pt
-- `AGREE` — within 1.0pt:   23%   within 2.5pt:   46%   within 5.0pt:   46%   worst: -23.5pt
-- `DEER` — within 1.0pt:   69%   within 2.5pt:   77%   within 5.0pt:   85%   worst: -7.5pt
-- `NTC-conf` — within 1.0pt:   54%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -2.4pt
+- `AGREE` — within 1.0pt:   23%   within 2.5pt:   31%   within 5.0pt:   31%   worst: -23.5pt
+- `DEER` — within 1.0pt:   69%   within 2.5pt:   69%   within 5.0pt:   85%   worst: -7.5pt
+- `NTC-conf` — within 1.0pt:   46%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -2.4pt
 - `EAT` — within 1.0pt:   31%   within 2.5pt:   77%   within 5.0pt:  100%   worst: -3.4pt
 - `MUR-mom` — within 1.0pt:   46%   within 2.5pt:   54%   within 5.0pt:   69%   worst: -23.6pt
-- `NTC-v2` — within 1.0pt:   23%   within 2.5pt:   46%   within 5.0pt:   54%   worst: -16.9pt
-- `REFRAIN-SWUCB` — within 1.0pt:   15%   within 2.5pt:   31%   within 5.0pt:   62%   worst: -20.9pt
+- `NTC-v2` — within 1.0pt:   23%   within 2.5pt:   31%   within 5.0pt:   46%   worst: -16.9pt
+- `REFRAIN-SWUCB` — within 1.0pt:    8%   within 2.5pt:   31%   within 5.0pt:   54%   worst: -20.9pt
