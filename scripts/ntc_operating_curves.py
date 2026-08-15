@@ -168,9 +168,14 @@ def main() -> int:
         orc, dep = {}, {}
         for name, (fn, grid) in SWEEPS.items():
             orc[name] = metrics(curve_oracle(ev, bench, fn, grid, van_tok, van_acc), van_acc)
-            dep[name] = metrics(curve_deployable(warm, ev, bench, fn, grid, van_tok, van_acc), van_acc)
+            _dp = curve_deployable(warm, ev, bench, fn, grid, van_tok, van_acc)
+            dep[name] = metrics(_dp, van_acc)
+            _h = [a for c, a, lb in _dp if lb.startswith("eps=0.01-")]
+            dep[name]["slo_dev"] = 100.0 * (_h[0] - van_acc) if _h else 0.0
         nf = curve_ntc_full(warm, ev, bench, van_tok, van_acc)
         orc["NTC-full (ours)"] = dep["NTC-full (ours)"] = metrics(nf, van_acc)
+        _h = [a for c, a, lb in nf if lb.startswith("eps=0.01-")]
+        dep["NTC-full (ours)"]["slo_dev"] = 100.0 * (_h[0] - van_acc) if _h else 0.0
 
         tag = f"{bench} / {model}"
         print(f"\n=== {tag}   (held-out n={len(ev)}, vanilla acc {van_acc:.3f}) ===")
@@ -178,8 +183,9 @@ def main() -> int:
         md = show("ORACLE knob (baselines flattered)", orc, md)
         md = show("DEPLOYABLE knob (what ships)", dep, md)
         for nm, m in dep.items():
-            agg.setdefault(nm, []).append(
-                (m["aucc"], 100.0 * (m["A"][-1] - van_acc)))
+            # deficit of the point actually deployed at the 1-point SLO
+            dv = m.get("slo_dev", float("nan"))
+            agg.setdefault(nm, []).append((m["aucc"], dv))
         figdata.append((tag, ev, bench, van_tok, van_acc, warm))
 
     # ---- CROSS-SETTING AGGREGATE (the decision-relevant summary) ----

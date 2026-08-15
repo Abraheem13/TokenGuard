@@ -285,10 +285,10 @@ A deployer chooses one method for a workload mix and cannot know which benchmark
 
 | method | mean AUCC | min AUCC | worst Δ accuracy (pts) |
 |---|---|---|---|
-| NTC-full (ours) | 0.674 | 0.450 | +0.0 |
-| NTC-v2 (fusion) | 0.662 | 0.413 | +0.0 |
-| Answer agreement | 0.661 | 0.397 | +0.0 |
-| Entropy (EAT) | 0.617 | 0.370 | +0.0 |
-| Smoothed confidence | 0.597 | 0.422 | +0.0 |
-| Confidence (DEER-λ) | 0.586 | 0.341 | +0.0 |
+| NTC-full (ours) | 0.674 | 0.450 | -3.3 |
+| NTC-v2 (fusion) | 0.662 | 0.413 | -11.8 |
+| Answer agreement | 0.661 | 0.397 | -11.8 |
+| Entropy (EAT) | 0.617 | 0.370 | -10.9 |
+| Smoothed confidence | 0.597 | 0.422 | -12.6 |
+| Confidence (DEER-λ) | 0.586 | 0.341 | -16.7 |
 
