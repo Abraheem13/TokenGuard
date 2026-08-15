@@ -191,12 +191,16 @@ def per_item(traces, bench, fn, kw):
         probes = t["probes"]
         kk = fn(probes, **({**kw, "bm": bench} if "bm" in fn.__code__.co_varnames else kw)) \
              if probes else None
+        # OVERHEAD_INCLUSIVE: all probes paid up to (and including) the halt
         if kk is None:
-            ok.append(bool(t["natural_correct"])); tok.append(t["n_total_tokens"])
+            ok.append(bool(t["natural_correct"]))
+            tok.append(t["n_total_tokens"]
+                       + sum(q.get("n_probe_tokens", 0) for q in probes))
         else:
             p = probes[kk]
             ok.append(is_correct(p["answer"], t["gold"], bench))
-            tok.append(p["ckpt_tokens"] + p["n_probe_tokens"])
+            tok.append(p["ckpt_tokens"]
+                       + sum(q.get("n_probe_tokens", 0) for q in probes[:kk + 1]))
     return np.array(ok), np.array(tok, dtype=float)
 
 
