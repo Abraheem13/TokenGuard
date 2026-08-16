@@ -89,13 +89,25 @@ def aucc_for_file(traces, bench, split_seed):
     warm, ev = OC.split(traces, seed=split_seed)
     van_tok = float(np.mean([t["n_total_tokens"] for t in ev]))
     van_acc = float(np.mean([t["natural_correct"] for t in ev]))
-    out = {}
+    import numpy as _np
+    out, out_op = {}, {}
+
+    def _op(pts):
+        """AUCC restricted to the operational region b <= 0.6."""
+        vals = []
+        for b in (0.4, 0.5, 0.6):
+            f = [aa for (c, aa, _) in pts if c <= b + 1e-9]
+            vals.append(max(f) if f else _np.nan)
+        return float(_np.nanmean(vals)) if not all(_np.isnan(vals)) else 0.0
+
     for name, (fn, grid) in OC.SWEEPS.items():
         pts = OC.curve_deployable(warm, ev, bench, fn, grid, van_tok, van_acc)
         out[name] = OC.metrics(pts, van_acc)["aucc"]
-    out["NTC-full (ours)"] = OC.metrics(
-        OC.curve_ntc_full(warm, ev, bench, van_tok, van_acc), van_acc)["aucc"]
-    return out
+        out_op[name] = _op(pts)
+    nf = OC.curve_ntc_full(warm, ev, bench, van_tok, van_acc)
+    out["NTC-full (ours)"] = OC.metrics(nf, van_acc)["aucc"]
+    out_op["NTC-full (ours)"] = _op(nf)
+    return out, out_op
 
 
 def main() -> int:
@@ -111,9 +123,10 @@ def main() -> int:
         d = json.loads(Path(pf).read_text())
         groups[setting_key(pf, d)].append((pf, d))
 
-    per_setting = {}          # setting -> method -> (mean, sd, n_reps)
+    per_setting = {}
+    per_setting_op = {}          # setting -> method -> (mean, sd, n_reps)
     for key, files in sorted(groups.items()):
-        reps = defaultdict(list)
+        reps, reps_op = defaultdict(list), defaultdict(list)
         bench = files[0][1]["benchmark"]
         for pf, d in files:
             traces = d["traces"]
@@ -122,10 +135,14 @@ def main() -> int:
                     S.is_correct(t.get("natural_answer", ""), t["gold"], bench))
             S.enrich_probes_with_nll(traces)
             for sd_ in range(a.splits):
-                for m, v in aucc_for_file(traces, bench, sd_).items():
+                full, op = aucc_for_file(traces, bench, sd_)
+                for m, v in full.items():
                     reps[m].append(v)
+                for m, v in op.items():
+                    reps_op[m].append(v)
         per_setting[key] = {m: (float(np.mean(v)), float(np.std(v)), len(v))
                             for m, v in reps.items()}
+        per_setting_op[key] = {m: float(np.mean(v)) for m, v in reps_op.items()}
         n_rep = max(len(v) for v in reps.values())
         print(f"\n=== {key}  ({len(files)} seed file(s) x {a.splits} splits "
               f"= {n_rep} replicates) ===")
@@ -169,6 +186,67 @@ def main() -> int:
         zs = "—" if w is None else f"{z:+.2f}"
         print(f"{m:24s} {mu:11.3f} {sd:7.3f} {mn:7.3f} {ws:>7s} {ps:>9s} {zs:>11s}")
         md.append(f"| {m} | {mu:.3f} | {sd:.3f} | {mn:.3f} | {ws} | {ps} | {zs} |")
+    # ---- OPERATIONAL-REGION AUCC and MINIMAX REGRET ----
+    def paired_block(title, table, note):
+        nonlocal md
+        print("\n" + "=" * 78)
+        print(title)
+        print("=" * 78)
+        print(f"{'method':24s} {'mean':>9s} {'sd':>7s} {'worst':>8s} "
+              f"{'wins':>7s} {'sign p':>9s}")
+        md += ["", f"## {title}", "", note, "",
+               "| method | mean | s.d. | worst setting | NTC-full wins | sign-test p |",
+               "|---|---|---|---|---|---|"]
+        rr = []
+        for m in methods:
+            vals = [table[k][m] for k in table if m in table[k]]
+            if not vals:
+                continue
+            if m == OURS:
+                rr.append((m, float(np.mean(vals)), float(np.std(vals)),
+                           float(np.min(vals)), None, float("nan")))
+                continue
+            dd = [table[k][OURS] - table[k][m] for k in table
+                  if m in table[k] and OURS in table[k]]
+            pp, pos, nn = sign_test(dd)
+            rr.append((m, float(np.mean(vals)), float(np.std(vals)),
+                       float(np.min(vals)), f"{pos}/{nn}", pp))
+        for m, mu, sd, mn, w, pp in sorted(rr, key=lambda r: -r[1]):
+            ws = "—" if w is None else w
+            ps = "—" if w is None else (f"{pp:.4f}" + ("*" if pp < 0.05 else ""))
+            print(f"{m:24s} {mu:9.3f} {sd:7.3f} {mn:8.3f} {ws:>7s} {ps:>9s}")
+            md.append(f"| {m} | {mu:.3f} | {sd:.3f} | {mn:.3f} | {ws} | {ps} |")
+
+    paired_block(
+        "OPERATIONAL-REGION AUCC (budgets b <= 0.6, where early exit matters)",
+        per_setting_op,
+        "Plain AUCC includes b = 1.0, where every method may simply never halt, "
+        "so a third of the grid cannot separate methods at all. Restricting to "
+        "the operational region measures the regime early exit exists for.")
+
+    # minimax regret on the operational region
+    regret = {}
+    for k, tab in per_setting_op.items():
+        best = max(tab.values())
+        regret[k] = {m: best - v for m, v in tab.items()}
+    print("\n" + "=" * 78)
+    print("MINIMAX REGRET over settings (operational region; lower is better)")
+    print("=" * 78)
+    print(f"{'method':24s} {'max regret':>11s} {'mean regret':>12s}")
+    md += ["", "## Minimax regret (operational region)", "",
+           "For each setting, regret(M) = best AUCC in that setting minus M's "
+           "AUCC; the table reports the MAXIMUM over settings. This is the "
+           "decision-theoretic criterion for committing to one method without "
+           "knowing which workload arrives: it penalises being far from the best "
+           "on any single workload — exactly the failure mode of a fixed signal.",
+           "", "| method | max regret | mean regret |", "|---|---|---|"]
+    for m, mx, mn_ in sorted(
+            [(m, max(r[m] for r in regret.values() if m in r),
+              float(np.mean([r[m] for r in regret.values() if m in r])))
+             for m in methods], key=lambda t: t[1]):
+        print(f"{m:24s} {mx:11.3f} {mn_:12.3f}")
+        md.append(f"| {m} | {mx:.3f} | {mn_:.3f} |")
+
     Path(a.out).write_text("\n".join(md) + "\n")
     print(f"\ntable: {a.out}")
     return 0

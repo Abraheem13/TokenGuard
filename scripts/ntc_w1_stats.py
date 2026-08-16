@@ -178,8 +178,9 @@ FAMILIES = {
     "EAT":      (eat_policy,      [{"delta": v} for v in (1e-2, 1e-3, 1e-4)]),
     "NTC-conf": (ntc_conf_policy, [{"theta": v} for v in (0.85, 0.90, 0.95, 0.99)]),
     "AGREE":    (agree_policy,    [{"m": v} for v in (2, 3)]),
-    "NTC-v2":   (ntc_v2_policy,   [{"m": m, "theta": t}
-                                   for m, t in ((2, .3), (2, .5), (2, .7), (3, .3), (3, .5))]),
+    "NTC-v2": (ntc_v2_policy,
+               [{"m": _m, "theta": _t} for _m in (2, 3)
+                for _t in (0.7, 0.9, 0.95)]),
 }
 
 
