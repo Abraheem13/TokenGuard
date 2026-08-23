@@ -1,0 +1,476 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{52}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{} and \showURL{}.  The latter does
+%%% not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showURL}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showURL #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+\makeatletter
+\@ifundefined{NAT@parse@date}{}{\let\NAT@parse@date@orig\NAT@parse@date}
+\@ifundefined{NAT@parse@date}{}{\def\NAT@parse@date#1#2#3#4#5#6@@{\NAT@parse@date@orig#1#2#3#4#5#6@@\def\NAT@tempyear{0000}\def\NAT@tempexlab{{?}}\ifx\NAT@year\NAT@tempyear\ifx\NAT@exlab\NAT@tempexlab\def\NAT@date{[n.\,d.]}\else\edef\NAT@date{[n.\,d.]\NAT@exlab}\fi\fi}}
+\makeatother
+
+\bibitem[Aggarwal and Welleck(2025)]%
+        {aggarwal2025l1}
+\bibfield{author}{\bibinfo{person}{Pranjal Aggarwal} {and} \bibinfo{person}{Sean Welleck}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{L1: Controlling How Long a Reasoning Model Thinks with Reinforcement Learning}. In \bibinfo{booktitle}{\emph{Conference on Language Modeling (COLM)}}.
+\newblock
+\newblock
+\shownote{arXiv:2503.04697}.
+
+
+\bibitem[Angelopoulos and Bates(2021)]%
+        {angelopoulos2021gentle}
+\bibfield{author}{\bibinfo{person}{Anastasios~N. Angelopoulos} {and} \bibinfo{person}{Stephen Bates}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2107.07511}} (\bibinfo{year}{2021}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2107.07511}{doi:\nolinkurl{10.48550/arXiv.2107.07511}}
+
+
+\bibitem[Angelopoulos et~al\mbox{.}(2024)]%
+        {angelopoulos2024conformal}
+\bibfield{author}{\bibinfo{person}{Anastasios~N. Angelopoulos}, \bibinfo{person}{Stephen Bates}, \bibinfo{person}{Adam Fisch}, \bibinfo{person}{Lihua Lei}, {and} \bibinfo{person}{Tal Schuster}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Conformal Risk Control}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Chen et~al\mbox{.}(2023)]%
+        {chen2023frugalgpt}
+\bibfield{author}{\bibinfo{person}{Lingjiao Chen}, \bibinfo{person}{Matei Zaharia}, {and} \bibinfo{person}{James Zou}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{FrugalGPT}: How to Use Large Language Models While Reducing Cost and Improving Performance}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2305.05176}} (\bibinfo{year}{2023}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2305.05176}{doi:\nolinkurl{10.48550/arXiv.2305.05176}}
+
+
+\bibitem[Chen et~al\mbox{.}(2024)]%
+        {chen2024overthinking}
+\bibfield{author}{\bibinfo{person}{Xingyu Chen}, \bibinfo{person}{Jiahao Xu}, \bibinfo{person}{Tian Liang}, \bibinfo{person}{Zhiwei He}, \bibinfo{person}{Jianhui Pang}, \bibinfo{person}{Dian Yu}, \bibinfo{person}{Linfeng Song}, \bibinfo{person}{Qiuzhi Liu}, \bibinfo{person}{Mengfei Zhou}, \bibinfo{person}{Zhuosheng Zhang}, \bibinfo{person}{Rui Wang}, \bibinfo{person}{Zhaopeng Tu}, \bibinfo{person}{Haitao Mi}, {and} \bibinfo{person}{Dong Yu}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Do NOT Think That Much for 2+3=? On the Overthinking of o1-Like {LLM}s}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2412.21187}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2412.21187}{doi:\nolinkurl{10.48550/arXiv.2412.21187}}
+
+
+\bibitem[Cobbe et~al\mbox{.}(2021)]%
+        {cobbe2021training}
+\bibfield{author}{\bibinfo{person}{Karl Cobbe}, \bibinfo{person}{Vineet Kosaraju}, \bibinfo{person}{Mohammad Bavarian}, \bibinfo{person}{Mark Chen}, \bibinfo{person}{Heewoo Jun}, \bibinfo{person}{Lukasz Kaiser}, \bibinfo{person}{Matthias Plappert}, \bibinfo{person}{Jerry Tworek}, \bibinfo{person}{Jacob Hilton}, \bibinfo{person}{Reiichiro Nakano}, \bibinfo{person}{Christopher Hesse}, {and} \bibinfo{person}{John Schulman}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Training Verifiers to Solve Math Word Problems}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2110.14168}} (\bibinfo{year}{2021}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2110.14168}{doi:\nolinkurl{10.48550/arXiv.2110.14168}}
+
+
+\bibitem[{DeepSeek-AI}(2025)]%
+        {deepseekai2025r1}
+\bibfield{author}{\bibinfo{person}{{DeepSeek-AI}}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{DeepSeek-R1: Incentivizing Reasoning Capability in {LLM}s via Reinforcement Learning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2501.12948}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2501.12948}{doi:\nolinkurl{10.48550/arXiv.2501.12948}}
+
+
+\bibitem[Desai and Durrett(2020)]%
+        {desai2020calibration}
+\bibfield{author}{\bibinfo{person}{Shrey Desai} {and} \bibinfo{person}{Greg Durrett}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Calibration of Pre-trained Transformers}. In \bibinfo{booktitle}{\emph{Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)}}. \bibinfo{pages}{295--302}.
+\newblock
+\href{https://doi.org/10.18653/v1/2020.emnlp-main.21}{doi:\nolinkurl{10.18653/v1/2020.emnlp-main.21}}
+
+
+\bibitem[Ding et~al\mbox{.}(2024)]%
+        {ding2024hybrid}
+\bibfield{author}{\bibinfo{person}{Dujian Ding}, \bibinfo{person}{Ankur Mallick}, \bibinfo{person}{Chi Wang}, \bibinfo{person}{Robert Sim}, \bibinfo{person}{Subhabrata Mukherjee}, \bibinfo{person}{Victor R{\"u}hle}, \bibinfo{person}{Laks V.~S. Lakshmanan}, {and} \bibinfo{person}{Ahmed~Hassan Awadallah}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Hybrid {LLM}: Cost-Efficient and Quality-Aware Query Routing}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Dong et~al\mbox{.}(2026)]%
+        {dong2026learning}
+\bibfield{author}{\bibinfo{person}{Zhe Dong}, \bibinfo{person}{Fang Qin}, {and} \bibinfo{person}{Manish Shah}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \showarticletitle{When Does Learning to Stop Help? A Cost-Aware Study of Early Exits in Reasoning Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2606.30852}} (\bibinfo{year}{2026}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2606.30852}{doi:\nolinkurl{10.48550/arXiv.2606.30852}}
+
+
+\bibitem[Elbayad et~al\mbox{.}(2020)]%
+        {elbayad2020depth}
+\bibfield{author}{\bibinfo{person}{Maha Elbayad}, \bibinfo{person}{Jiatao Gu}, \bibinfo{person}{Edouard Grave}, {and} \bibinfo{person}{Michael Auli}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{Depth-Adaptive Transformer}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Farquhar et~al\mbox{.}(2024)]%
+        {farquhar2024detecting}
+\bibfield{author}{\bibinfo{person}{Sebastian Farquhar}, \bibinfo{person}{Jannik Kossen}, \bibinfo{person}{Lorenz Kuhn}, {and} \bibinfo{person}{Yarin Gal}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Detecting Hallucinations in Large Language Models Using Semantic Entropy}.
+\newblock \bibinfo{journal}{\emph{Nature}} \bibinfo{volume}{630}, \bibinfo{number}{8017} (\bibinfo{year}{2024}), \bibinfo{pages}{625--630}.
+\newblock
+\href{https://doi.org/10.1038/s41586-024-07421-0}{doi:\nolinkurl{10.1038/s41586-024-07421-0}}
+
+
+\bibitem[Fu et~al\mbox{.}(2025)]%
+        {fu2024certaindex}
+\bibfield{author}{\bibinfo{person}{Yichao Fu}, \bibinfo{person}{Junda Chen}, \bibinfo{person}{Siqi Zhu}, \bibinfo{person}{Zheyu Fu}, \bibinfo{person}{Zhongdongming Dai}, \bibinfo{person}{Yonghao Zhuang}, \bibinfo{person}{Yian Ma}, \bibinfo{person}{Aurick Qiao}, \bibinfo{person}{Tajana Rosing}, \bibinfo{person}{Ion Stoica}, {and} \bibinfo{person}{Hao Zhang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Efficiently Scaling {LLM} Reasoning with Certaindex}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}. \bibinfo{pages}{157566--157604}.
+\newblock
+\newblock
+\shownote{arXiv:2412.20993}.
+
+
+\bibitem[Han et~al\mbox{.}(2024)]%
+        {han2024token}
+\bibfield{author}{\bibinfo{person}{Tingxu Han}, \bibinfo{person}{Zhenting Wang}, \bibinfo{person}{Chunrong Fang}, \bibinfo{person}{Shiyu Zhao}, \bibinfo{person}{Shiqing Ma}, {and} \bibinfo{person}{Zhenyu Chen}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Token-Budget-Aware {LLM} Reasoning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2412.18547}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2412.18547}{doi:\nolinkurl{10.48550/arXiv.2412.18547}}
+
+
+\bibitem[Han et~al\mbox{.}(2022)]%
+        {han2021dynamic}
+\bibfield{author}{\bibinfo{person}{Yizeng Han}, \bibinfo{person}{Gao Huang}, \bibinfo{person}{Shiji Song}, \bibinfo{person}{Le Yang}, \bibinfo{person}{Honghui Wang}, {and} \bibinfo{person}{Yulin Wang}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Dynamic Neural Networks: A Survey}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}} \bibinfo{volume}{44}, \bibinfo{number}{11} (\bibinfo{year}{2022}), \bibinfo{pages}{7436--7456}.
+\newblock
+\href{https://doi.org/10.1109/TPAMI.2021.3117837}{doi:\nolinkurl{10.1109/TPAMI.2021.3117837}}
+
+
+\bibitem[Hendrycks et~al\mbox{.}(2021)]%
+        {hendrycks2021measuring}
+\bibfield{author}{\bibinfo{person}{Dan Hendrycks}, \bibinfo{person}{Collin Burns}, \bibinfo{person}{Saurav Kadavath}, \bibinfo{person}{Akul Arora}, \bibinfo{person}{Steven Basart}, \bibinfo{person}{Eric Tang}, \bibinfo{person}{Dawn Song}, {and} \bibinfo{person}{Jacob Steinhardt}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{Measuring Mathematical Problem Solving with the {MATH} Dataset}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}}.
+\newblock
+
+
+\bibitem[Hu et~al\mbox{.}(2024)]%
+        {hu2024routerbench}
+\bibfield{author}{\bibinfo{person}{Qitian~Jason Hu}, \bibinfo{person}{Jacob Bieker}, \bibinfo{person}{Xiuyu Li}, \bibinfo{person}{Nan Jiang}, \bibinfo{person}{Benjamin Keigwin}, \bibinfo{person}{Gaurav Ranganath}, \bibinfo{person}{Kurt Keutzer}, {and} \bibinfo{person}{Shriyash~Kaustubh Upadhyay}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{RouterBench}: A Benchmark for Multi-{LLM} Routing System}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2403.12031}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2403.12031}{doi:\nolinkurl{10.48550/arXiv.2403.12031}}
+
+
+\bibitem[Jiang et~al\mbox{.}(2021)]%
+        {jiang2021how}
+\bibfield{author}{\bibinfo{person}{Zhengbao Jiang}, \bibinfo{person}{Jun Araki}, \bibinfo{person}{Haibo Ding}, {and} \bibinfo{person}{Graham Neubig}.} \bibinfo{year}{2021}\natexlab{}.
+\newblock \showarticletitle{How Can We Know When Language Models Know? On the Calibration of Language Models for Question Answering}.
+\newblock \bibinfo{journal}{\emph{Transactions of the Association for Computational Linguistics}}  \bibinfo{volume}{9} (\bibinfo{year}{2021}), \bibinfo{pages}{962--977}.
+\newblock
+\href{https://doi.org/10.1162/tacl_a_00407}{doi:\nolinkurl{10.1162/tacl_a_00407}}
+
+
+\bibitem[Kadavath et~al\mbox{.}(2022)]%
+        {kadavath2022language}
+\bibfield{author}{\bibinfo{person}{Saurav Kadavath}, \bibinfo{person}{Tom Conerly}, \bibinfo{person}{Amanda Askell}, \bibinfo{person}{Tom Henighan}, \bibinfo{person}{Dawn Drain}, \bibinfo{person}{Ethan Perez}, \bibinfo{person}{Nicholas Schiefer}, \bibinfo{person}{Zac Hatfield-Dodds}, \bibinfo{person}{Nova DasSarma}, \bibinfo{person}{Eli Tran-Johnson}, {et~al\mbox{.}}} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Language Models (Mostly) Know What They Know}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2207.05221}} (\bibinfo{year}{2022}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2207.05221}{doi:\nolinkurl{10.48550/arXiv.2207.05221}}
+
+
+\bibitem[Kojima et~al\mbox{.}(2022)]%
+        {kojima2022large}
+\bibfield{author}{\bibinfo{person}{Takeshi Kojima}, \bibinfo{person}{Shixiang~Shane Gu}, \bibinfo{person}{Machel Reid}, \bibinfo{person}{Yutaka Matsuo}, {and} \bibinfo{person}{Yusuke Iwasawa}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Large Language Models are Zero-Shot Reasoners}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\bibitem[Kuhn et~al\mbox{.}(2023)]%
+        {kuhn2023semantic}
+\bibfield{author}{\bibinfo{person}{Lorenz Kuhn}, \bibinfo{person}{Yarin Gal}, {and} \bibinfo{person}{Sebastian Farquhar}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in Natural Language Generation}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Kwon et~al\mbox{.}(2023)]%
+        {kwon2023efficient}
+\bibfield{author}{\bibinfo{person}{Woosuk Kwon}, \bibinfo{person}{Zhuohan Li}, \bibinfo{person}{Siyuan Zhuang}, \bibinfo{person}{Ying Sheng}, \bibinfo{person}{Lianmin Zheng}, \bibinfo{person}{Cody~Hao Yu}, \bibinfo{person}{Joseph~E. Gonzalez}, \bibinfo{person}{Hao Zhang}, {and} \bibinfo{person}{Ion Stoica}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Efficient Memory Management for Large Language Model Serving with {PagedAttention}}. In \bibinfo{booktitle}{\emph{Proceedings of the 29th Symposium on Operating Systems Principles (SOSP)}}. \bibinfo{pages}{611--626}.
+\newblock
+\href{https://doi.org/10.1145/3600006.3613165}{doi:\nolinkurl{10.1145/3600006.3613165}}
+
+
+\bibitem[Leviathan et~al\mbox{.}(2023)]%
+        {leviathan2023fast}
+\bibfield{author}{\bibinfo{person}{Yaniv Leviathan}, \bibinfo{person}{Matan Kalman}, {and} \bibinfo{person}{Yossi Matias}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Fast Inference from Transformers via Speculative Decoding}. In \bibinfo{booktitle}{\emph{International Conference on Machine Learning (ICML)}}.
+\newblock
+
+
+\bibitem[Lightman et~al\mbox{.}(2024)]%
+        {lightman2024lets}
+\bibfield{author}{\bibinfo{person}{Hunter Lightman}, \bibinfo{person}{Vineet Kosaraju}, \bibinfo{person}{Yura Burda}, \bibinfo{person}{Harri Edwards}, \bibinfo{person}{Bowen Baker}, \bibinfo{person}{Teddy Lee}, \bibinfo{person}{Jan Leike}, \bibinfo{person}{John Schulman}, \bibinfo{person}{Ilya Sutskever}, {and} \bibinfo{person}{Karl Cobbe}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Let's Verify Step by Step}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Lin et~al\mbox{.}(2022)]%
+        {lin2022teaching}
+\bibfield{author}{\bibinfo{person}{Stephanie Lin}, \bibinfo{person}{Jacob Hilton}, {and} \bibinfo{person}{Owain Evans}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Teaching Models to Express Their Uncertainty in Words}.
+\newblock \bibinfo{journal}{\emph{Transactions on Machine Learning Research (TMLR)}} (\bibinfo{year}{2022}).
+\newblock
+\newblock
+\shownote{arXiv:2205.14334}.
+
+
+\bibitem[Liu et~al\mbox{.}(2020)]%
+        {liu2020fastbert}
+\bibfield{author}{\bibinfo{person}{Weijie Liu}, \bibinfo{person}{Peng Zhou}, \bibinfo{person}{Zhiruo Wang}, \bibinfo{person}{Zhe Zhao}, \bibinfo{person}{Haotang Deng}, {and} \bibinfo{person}{Qi Ju}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{{FastBERT}: A Self-Distilling {BERT} with Adaptive Inference Time}. In \bibinfo{booktitle}{\emph{Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL)}}. \bibinfo{pages}{6035--6044}.
+\newblock
+\href{https://doi.org/10.18653/v1/2020.acl-main.537}{doi:\nolinkurl{10.18653/v1/2020.acl-main.537}}
+
+
+\bibitem[Ma et~al\mbox{.}(2025)]%
+        {ma2025reasoning}
+\bibfield{author}{\bibinfo{person}{Wenjie Ma}, \bibinfo{person}{Jingxuan He}, \bibinfo{person}{Charlie Snell}, \bibinfo{person}{Tyler Griggs}, \bibinfo{person}{Sewon Min}, {and} \bibinfo{person}{Matei Zaharia}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Reasoning Models Can Be Effective Without Thinking}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2504.09858}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2504.09858}{doi:\nolinkurl{10.48550/arXiv.2504.09858}}
+
+
+\bibitem[Manakul et~al\mbox{.}(2023)]%
+        {manakul2023selfcheckgpt}
+\bibfield{author}{\bibinfo{person}{Potsawee Manakul}, \bibinfo{person}{Adian Liusie}, {and} \bibinfo{person}{Mark J.~F. Gales}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{{SelfCheckGPT}: Zero-Resource Black-Box Hallucination Detection for Generative Large Language Models}. In \bibinfo{booktitle}{\emph{Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing (EMNLP)}}. \bibinfo{pages}{9004--9017}.
+\newblock
+\href{https://doi.org/10.18653/v1/2023.emnlp-main.557}{doi:\nolinkurl{10.18653/v1/2023.emnlp-main.557}}
+
+
+\bibitem[Muennighoff et~al\mbox{.}(2025)]%
+        {muennighoff2025s1}
+\bibfield{author}{\bibinfo{person}{Niklas Muennighoff}, \bibinfo{person}{Zitong Yang}, \bibinfo{person}{Weijia Shi}, \bibinfo{person}{Xiang~Lisa Li}, \bibinfo{person}{Li Fei-Fei}, \bibinfo{person}{Hannaneh Hajishirzi}, \bibinfo{person}{Luke Zettlemoyer}, \bibinfo{person}{Percy Liang}, \bibinfo{person}{Emmanuel Cand{\`e}s}, {and} \bibinfo{person}{Tatsunori Hashimoto}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{s1: Simple Test-Time Scaling}. In \bibinfo{booktitle}{\emph{Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP)}}. \bibinfo{pages}{20286--20332}.
+\newblock
+\href{https://doi.org/10.18653/v1/2025.emnlp-main.1025}{doi:\nolinkurl{10.18653/v1/2025.emnlp-main.1025}}
+
+
+\bibitem[Ong et~al\mbox{.}(2024)]%
+        {ong2024routellm}
+\bibfield{author}{\bibinfo{person}{Isaac Ong}, \bibinfo{person}{Amjad Almahairi}, \bibinfo{person}{Vincent Wu}, \bibinfo{person}{Wei-Lin Chiang}, \bibinfo{person}{Tianhao Wu}, \bibinfo{person}{Joseph~E. Gonzalez}, \bibinfo{person}{M.~Waleed Kadous}, {and} \bibinfo{person}{Ion Stoica}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{RouteLLM}: Learning to Route {LLM}s with Preference Data}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2406.18665}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2406.18665}{doi:\nolinkurl{10.48550/arXiv.2406.18665}}
+
+
+\bibitem[Qu et~al\mbox{.}(2025)]%
+        {qu2025survey}
+\bibfield{author}{\bibinfo{person}{Xiaoye Qu}, \bibinfo{person}{Yafu Li}, \bibinfo{person}{Zhaochen Su}, \bibinfo{person}{Weigao Sun}, \bibinfo{person}{Jianhao Yan}, \bibinfo{person}{Dongrui Liu}, \bibinfo{person}{Ganqu Cui}, \bibinfo{person}{Daizong Liu}, \bibinfo{person}{Shuxian Liang}, \bibinfo{person}{Junxian He}, {and} \bibinfo{person}{Yu Cheng}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{A Survey of Efficient Reasoning for Large Reasoning Models: Language, Multimodality, and Beyond}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2503.21614}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2503.21614}{doi:\nolinkurl{10.48550/arXiv.2503.21614}}
+
+
+\bibitem[Rein et~al\mbox{.}(2024)]%
+        {rein2024gpqa}
+\bibfield{author}{\bibinfo{person}{David Rein}, \bibinfo{person}{Betty~Li Hou}, \bibinfo{person}{Asa~Cooper Stickland}, \bibinfo{person}{Jackson Petty}, \bibinfo{person}{Richard~Yuanzhe Pang}, \bibinfo{person}{Julien Dirani}, \bibinfo{person}{Julian Michael}, {and} \bibinfo{person}{Samuel~R. Bowman}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{GPQA}: A Graduate-Level Google-Proof Q\&A Benchmark}. In \bibinfo{booktitle}{\emph{Conference on Language Modeling (COLM)}}.
+\newblock
+
+
+\bibitem[Schuster et~al\mbox{.}(2022)]%
+        {schuster2022confident}
+\bibfield{author}{\bibinfo{person}{Tal Schuster}, \bibinfo{person}{Adam Fisch}, \bibinfo{person}{Jai Gupta}, \bibinfo{person}{Mostafa Dehghani}, \bibinfo{person}{Dara Bahri}, \bibinfo{person}{Vinh~Q. Tran}, \bibinfo{person}{Yi Tay}, {and} \bibinfo{person}{Donald Metzler}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Confident Adaptive Language Modeling}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\bibitem[Snell et~al\mbox{.}(2024)]%
+        {snell2024scaling}
+\bibfield{author}{\bibinfo{person}{Charlie Snell}, \bibinfo{person}{Jaehoon Lee}, \bibinfo{person}{Kelvin Xu}, {and} \bibinfo{person}{Aviral Kumar}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Scaling {LLM} Test-Time Compute Optimally Can Be More Effective than Scaling Model Parameters}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2408.03314}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2408.03314}{doi:\nolinkurl{10.48550/arXiv.2408.03314}}
+
+
+\bibitem[Sprague et~al\mbox{.}(2025)]%
+        {sprague2025cot}
+\bibfield{author}{\bibinfo{person}{Zayne Sprague}, \bibinfo{person}{Fangcong Yin}, \bibinfo{person}{Juan~Diego Rodriguez}, \bibinfo{person}{Dongwei Jiang}, \bibinfo{person}{Manya Wadhwa}, \bibinfo{person}{Prasann Singhal}, \bibinfo{person}{Xinyu Zhao}, \bibinfo{person}{Xi Ye}, \bibinfo{person}{Kyle Mahowald}, {and} \bibinfo{person}{Greg Durrett}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{To {CoT} or Not to {CoT}? Chain-of-Thought Helps Mainly on Math and Symbolic Reasoning}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+\newblock
+\shownote{arXiv:2409.12183}.
+
+
+\bibitem[Sui et~al\mbox{.}(2025)]%
+        {sui2025stop}
+\bibfield{author}{\bibinfo{person}{Yang Sui}, \bibinfo{person}{Yu-Neng Chuang}, \bibinfo{person}{Guanchu Wang}, \bibinfo{person}{Jiamu Zhang}, \bibinfo{person}{Tianyi Zhang}, \bibinfo{person}{Jiayi Yuan}, \bibinfo{person}{Hongyi Liu}, \bibinfo{person}{Andrew Wen}, \bibinfo{person}{Shaochen Zhong}, \bibinfo{person}{Hanjie Chen}, {and} \bibinfo{person}{Xia Hu}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Stop Overthinking: A Survey on Efficient Reasoning for Large Language Models}.
+\newblock \bibinfo{journal}{\emph{Transactions on Machine Learning Research (TMLR)}} (\bibinfo{year}{2025}).
+\newblock
+\newblock
+\shownote{arXiv:2503.16419}.
+
+
+\bibitem[Sun et~al\mbox{.}(2025)]%
+        {sun2025refrain}
+\bibfield{author}{\bibinfo{person}{Renliang Sun}, \bibinfo{person}{Wei Cheng}, \bibinfo{person}{Dawei Li}, \bibinfo{person}{Haifeng Chen}, {and} \bibinfo{person}{Wei Wang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Stop When Enough: Adaptive Early-Stopping for Chain-of-Thought Reasoning}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2510.10103}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2510.10103}{doi:\nolinkurl{10.48550/arXiv.2510.10103}}
+
+
+\bibitem[Wang et~al\mbox{.}(2025)]%
+        {wang2025eat}
+\bibfield{author}{\bibinfo{person}{Xi Wang}, \bibinfo{person}{James McInerney}, \bibinfo{person}{Lequn Wang}, {and} \bibinfo{person}{Nathan Kallus}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Entropy After </Think> for Reasoning Model Early Exiting}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2509.26522}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2509.26522}{doi:\nolinkurl{10.48550/arXiv.2509.26522}}
+
+
+\bibitem[Wang et~al\mbox{.}(2023)]%
+        {wang2023selfconsistency}
+\bibfield{author}{\bibinfo{person}{Xuezhi Wang}, \bibinfo{person}{Jason Wei}, \bibinfo{person}{Dale Schuurmans}, \bibinfo{person}{Quoc~V. Le}, \bibinfo{person}{Ed~H. Chi}, \bibinfo{person}{Sharan Narang}, \bibinfo{person}{Aakanksha Chowdhery}, {and} \bibinfo{person}{Denny Zhou}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Self-Consistency Improves Chain of Thought Reasoning in Language Models}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Wang et~al\mbox{.}(2024)]%
+        {wang2024mmlupro}
+\bibfield{author}{\bibinfo{person}{Yubo Wang}, \bibinfo{person}{Xueguang Ma}, \bibinfo{person}{Ge Zhang}, \bibinfo{person}{Yuansheng Ni}, \bibinfo{person}{Abhranil Chandra}, \bibinfo{person}{Shiguang Guo}, \bibinfo{person}{Weiming Ren}, \bibinfo{person}{Aaran Arulraj}, \bibinfo{person}{Xuan He}, \bibinfo{person}{Ziyan Jiang}, {et~al\mbox{.}}} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{{MMLU-Pro}: A More Robust and Challenging Multi-Task Language Understanding Benchmark}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS) Datasets and Benchmarks Track}}. \bibinfo{pages}{95266--95290}.
+\newblock
+
+
+\bibitem[Wei et~al\mbox{.}(2022)]%
+        {wei2022chain}
+\bibfield{author}{\bibinfo{person}{Jason Wei}, \bibinfo{person}{Xuezhi Wang}, \bibinfo{person}{Dale Schuurmans}, \bibinfo{person}{Maarten Bosma}, \bibinfo{person}{Brian Ichter}, \bibinfo{person}{Fei Xia}, \bibinfo{person}{Ed~H. Chi}, \bibinfo{person}{Quoc~V. Le}, {and} \bibinfo{person}{Denny Zhou}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Chain-of-Thought Prompting Elicits Reasoning in Large Language Models}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}. \bibinfo{pages}{24824--24837}.
+\newblock
+
+
+\bibitem[Wu et~al\mbox{.}(2024)]%
+        {wu2024inference}
+\bibfield{author}{\bibinfo{person}{Yangzhen Wu}, \bibinfo{person}{Zhiqing Sun}, \bibinfo{person}{Shanda Li}, \bibinfo{person}{Sean Welleck}, {and} \bibinfo{person}{Yiming Yang}.} \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{Inference Scaling Laws: An Empirical Analysis of Compute-Optimal Inference for Problem-Solving with Language Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2408.00724}} (\bibinfo{year}{2024}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2408.00724}{doi:\nolinkurl{10.48550/arXiv.2408.00724}}
+
+
+\bibitem[Xin et~al\mbox{.}(2020)]%
+        {xin2020deebert}
+\bibfield{author}{\bibinfo{person}{Ji Xin}, \bibinfo{person}{Raphael Tang}, \bibinfo{person}{Jaejun Lee}, \bibinfo{person}{Yaoliang Yu}, {and} \bibinfo{person}{Jimmy Lin}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{{DeeBERT}: Dynamic Early Exiting for Accelerating {BERT} Inference}. In \bibinfo{booktitle}{\emph{Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL)}}. \bibinfo{pages}{2246--2251}.
+\newblock
+\href{https://doi.org/10.18653/v1/2020.acl-main.204}{doi:\nolinkurl{10.18653/v1/2020.acl-main.204}}
+
+
+\bibitem[Xu et~al\mbox{.}(2025)]%
+        {xu2025chain}
+\bibfield{author}{\bibinfo{person}{Silei Xu}, \bibinfo{person}{Wenhao Xie}, \bibinfo{person}{Lingxiao Zhao}, {and} \bibinfo{person}{Pengcheng He}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{Chain of Draft: Thinking Faster by Writing Less}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2502.18600}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2502.18600}{doi:\nolinkurl{10.48550/arXiv.2502.18600}}
+
+
+\bibitem[Yan et~al\mbox{.}(2025)]%
+        {yan2025mur}
+\bibfield{author}{\bibinfo{person}{Hang Yan}, \bibinfo{person}{Fangzhi Xu}, \bibinfo{person}{Rongman Xu}, \bibinfo{person}{Yifei Li}, \bibinfo{person}{Jian Zhang}, \bibinfo{person}{Haoran Luo}, \bibinfo{person}{Xiaobao Wu}, \bibinfo{person}{Luu~Anh Tuan}, \bibinfo{person}{Haiteng Zhao}, \bibinfo{person}{Qika Lin}, {and} \bibinfo{person}{Jun Liu}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{{MUR}: Momentum Uncertainty Guided Reasoning for Large Language Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2507.14958}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2507.14958}{doi:\nolinkurl{10.48550/arXiv.2507.14958}}
+
+
+\bibitem[Yang et~al\mbox{.}(2025a)]%
+        {yang2025qwen3}
+\bibfield{author}{\bibinfo{person}{An Yang}, \bibinfo{person}{Anfeng Li}, \bibinfo{person}{Baosong Yang}, {et~al\mbox{.}}} \bibinfo{year}{2025}\natexlab{a}.
+\newblock \showarticletitle{Qwen3 Technical Report}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2505.09388}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2505.09388}{doi:\nolinkurl{10.48550/arXiv.2505.09388}}
+
+
+\bibitem[Yang et~al\mbox{.}(2025b)]%
+        {yang2025deer}
+\bibfield{author}{\bibinfo{person}{Chenxu Yang}, \bibinfo{person}{Qingyi Si}, \bibinfo{person}{Yongjie Duan}, \bibinfo{person}{Zheliang Zhu}, \bibinfo{person}{Chenyu Zhu}, \bibinfo{person}{Zheng Lin}, \bibinfo{person}{Li Cao}, {and} \bibinfo{person}{Weiping Wang}.} \bibinfo{year}{2025}\natexlab{b}.
+\newblock \showarticletitle{Dynamic Early Exit in Reasoning Models}.
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2504.15895}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2504.15895}{doi:\nolinkurl{10.48550/arXiv.2504.15895}}
+\newblock
+\shownote{Code: \url{https://github.com/iie-ycx/DEER}}.
+
+
+\bibitem[Yao et~al\mbox{.}(2023)]%
+        {yao2023tree}
+\bibfield{author}{\bibinfo{person}{Shunyu Yao}, \bibinfo{person}{Dian Yu}, \bibinfo{person}{Jeffrey Zhao}, \bibinfo{person}{Izhak Shafran}, \bibinfo{person}{Thomas~L. Griffiths}, \bibinfo{person}{Yuan Cao}, {and} \bibinfo{person}{Karthik Narasimhan}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Tree of Thoughts: Deliberate Problem Solving with Large Language Models}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\bibitem[Zhang et~al\mbox{.}(2025a)]%
+        {zhang2025adaptthink}
+\bibfield{author}{\bibinfo{person}{Jiajie Zhang}, \bibinfo{person}{Nianyi Lin}, \bibinfo{person}{Lei Hou}, \bibinfo{person}{Ling Feng}, {and} \bibinfo{person}{Juanzi Li}.} \bibinfo{year}{2025}\natexlab{a}.
+\newblock \showarticletitle{{AdaptThink}: Reasoning Models Can Learn When to Think}. In \bibinfo{booktitle}{\emph{Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP)}}. \bibinfo{pages}{3716--3730}.
+\newblock
+\href{https://doi.org/10.18653/v1/2025.emnlp-main.184}{doi:\nolinkurl{10.18653/v1/2025.emnlp-main.184}}
+
+
+\bibitem[Zhang et~al\mbox{.}(2025b)]%
+        {zhang2025survey}
+\bibfield{author}{\bibinfo{person}{Qiyuan Zhang}, \bibinfo{person}{Fuyuan Lyu}, \bibinfo{person}{Zexu Sun}, \bibinfo{person}{Lei Wang}, \bibinfo{person}{Weixu Zhang}, \bibinfo{person}{Zhihan Guo}, \bibinfo{person}{Yufei Wang}, \bibinfo{person}{Irwin King}, \bibinfo{person}{Xue Liu}, {and} \bibinfo{person}{Chen Ma}.} \bibinfo{year}{2025}\natexlab{b}.
+\newblock \showarticletitle{A Survey on Test-Time Scaling in Large Language Models: What, How, Where, and How Well?}
+\newblock \bibinfo{journal}{\emph{arXiv preprint arXiv:2503.24235}} (\bibinfo{year}{2025}).
+\newblock
+\href{https://doi.org/10.48550/arXiv.2503.24235}{doi:\nolinkurl{10.48550/arXiv.2503.24235}}
+
+
+\bibitem[Zhou et~al\mbox{.}(2023)]%
+        {zhou2023leasttomost}
+\bibfield{author}{\bibinfo{person}{Denny Zhou}, \bibinfo{person}{Nathanael Sch{\"a}rli}, \bibinfo{person}{Le Hou}, \bibinfo{person}{Jason Wei}, \bibinfo{person}{Nathan Scales}, \bibinfo{person}{Xuezhi Wang}, \bibinfo{person}{Dale Schuurmans}, \bibinfo{person}{Claire Cui}, \bibinfo{person}{Olivier Bousquet}, \bibinfo{person}{Quoc~V. Le}, {and} \bibinfo{person}{Ed~H. Chi}.} \bibinfo{year}{2023}\natexlab{}.
+\newblock \showarticletitle{Least-to-Most Prompting Enables Complex Reasoning in Large Language Models}. In \bibinfo{booktitle}{\emph{International Conference on Learning Representations (ICLR)}}.
+\newblock
+
+
+\bibitem[Zhou et~al\mbox{.}(2020)]%
+        {zhou2020bert}
+\bibfield{author}{\bibinfo{person}{Wangchunshu Zhou}, \bibinfo{person}{Canwen Xu}, \bibinfo{person}{Tao Ge}, \bibinfo{person}{Julian McAuley}, \bibinfo{person}{Ke Xu}, {and} \bibinfo{person}{Furu Wei}.} \bibinfo{year}{2020}\natexlab{}.
+\newblock \showarticletitle{{BERT} Loses Patience: Fast and Robust Inference with Early Exit}. In \bibinfo{booktitle}{\emph{Advances in Neural Information Processing Systems (NeurIPS)}}.
+\newblock
+
+
+\end{thebibliography}
