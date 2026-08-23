@@ -1,6 +1,6 @@
 # Checkpoint density: what does probing more often buy?
 
-MATH-500, n=500, greedy decoding, 16k thinking budget, one symbolic grader; token counts are online cost inclusive of every probe purchased. `overhead` is the cost of running the controller and declining to halt, relative to plain generation. DEER is the authors' code at its default configuration, with overhead measured on the same convention.
+MATH-500, n=500, greedy decoding, 16k thinking budget, one symbolic grader; token counts are online cost inclusive of every probe purchased. `overhead` is the cost of running the controller and declining to halt, relative to plain generation. DEER is the authors' code at its default configuration, with overhead measured on the same convention. Where the density levels cover different numbers of items, all levels are scored on the items they share.
 
 | model | density | probes/item | vanilla acc@tok | overhead | AGREE m=3 acc@tok | NTC-Select acc@tok | selected rule |
 |---|---|---|---|---|---|---|---|
