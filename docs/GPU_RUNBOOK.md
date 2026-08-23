@@ -5,6 +5,35 @@ in `experiments/ntc/`.  Two questions cannot be: they need new generations.
 Both are queued and analysed by scripts already in the repository, so the loop
 is submit, wait, run one analysis command, and the tables regenerate.
 
+## Which GPU
+
+The workload is **decode-bound**: each item generates up to 16k thinking tokens
+plus short forced answers, so memory bandwidth decides the wall clock, not
+FLOPs, and VRAM decides whether the job runs at all.
+
+| GPU | VRAM | bandwidth | Qwen3-8B @ 24k ctx | verdict |
+|---|---|---|---|---|
+| **L40S** | 48 GB | 864 GB/s | comfortable | **use this** — every existing file was generated on it |
+| RTX PRO 6000 Server | 96 GB | ~1.8 TB/s | comfortable | faster; worth it only if priced under ~2x L40S |
+| A10G | 24 GB | 600 GB/s | tight (weights 16 GB) | fine for the 4B jobs, risky for 8B |
+| L4 | 24 GB | 300 GB/s | tight | ~2.5x the wall clock; only if much cheaper |
+| L4 fractional | <24 GB | shared | no | insufficient VRAM |
+| T4 | 16 GB | 320 GB/s | no | Turing has no bfloat16, and 16 GB will not hold 8B at 24k |
+
+Keeping L40S also keeps the hardware constant across the head-to-head
+comparison, which is one fewer thing for a referee to ask about. Nothing in the
+measurement depends on the GPU — token counts and accuracy are properties of
+the model, seed and decoding — but consistency is free here, so take it.
+
+To use a different queue:
+
+```bash
+PART=gpu-2c-a10g-1g HOURS_SCALE=1.5 bash run_queue_density.sh
+```
+
+`HOURS_SCALE` multiplies the wall-clock request; use ~1.5 for A10G and ~2.5 for
+L4, or the jobs will be killed mid-run.
+
 ## Before you start
 
 ```bash

@@ -15,12 +15,20 @@
 #   bash run_queue_density.sh --dry   # inspect
 #   bash run_queue_density.sh         # submit 4 jobs
 set -e
-PART="gpu-2c-l40s-1g"
+# Partition / GPU.  The existing head-to-head files were generated on L40S, so
+# keeping L40S keeps the hardware constant across the comparison.  Override for
+# a different queue, e.g.  PART=gpu-2c-a10g-1g bash run_queue_density.sh
+PART="${PART:-gpu-2c-l40s-1g}"
+# Wall-clock allowance is sized for L40S (864 GB/s).  This workload is
+# decode-bound, so scale HOURS by the bandwidth ratio on a slower card:
+# A10G ~1.5x, L4 ~2.5x, T4 unsupported (no bfloat16).
+HOURS_SCALE="${HOURS_SCALE:-1}"
 DRY="${1:-}"
 T="python scripts/ntc_w1_thinking.py"
 
 submit () {
   local name="$1" hours="$2" cmd="$3"
+  hours=$(awk -v h="$hours" -v s="$HOURS_SCALE" 'BEGIN{printf "%d", (h*s)+0.999}')
   local f="/tmp/job_${name}.sbatch"
   cat > "$f" << SBATCH
 #!/bin/bash
@@ -51,7 +59,7 @@ for M in 4B 8B; do
 done
 
 echo ""
-echo "Density sweep queued (4 jobs). The 1x baseline already exists as"
+echo "Density sweep queued (4 jobs) on partition ${PART}. The 1x baseline already exists as"
 echo "  experiments/ntc/h2h2_math500_Qwen3-{4B,8B}.json"
 echo "When the jobs finish:  python scripts/ntc_ckpt_density.py"
 
