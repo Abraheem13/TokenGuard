@@ -71,12 +71,28 @@ def main() -> int:
     ap.add_argument("--out", default=str(NTC / "CKPT_DENSITY.md"))
     a = ap.parse_args()
 
+    # Restrict every density level of a model to the items they share, so a
+    # sweep run with a smaller --limit still compares like with like.
+    common = {}
+    for model in ("Qwen3-4B", "Qwen3-8B"):
+        sets = []
+        for _, pat in LEVELS:
+            f = NTC / pat.format(m=model.split("-")[1])
+            if f.exists():
+                sets.append({t["qid"] for t in json.loads(f.read_text())["traces"]})
+        common[model] = set.intersection(*sets) if sets else set()
+        if sets and len(common[model]) < max(len(x) for x in sets):
+            print(f"[{model}] density levels share {len(common[model])} of "
+                  f"{max(len(x) for x in sets)} items; comparing on the shared subset")
+
     md = ["# Checkpoint density: what does probing more often buy?", "",
           "MATH-500, n=500, greedy decoding, 16k thinking budget, one symbolic grader; "
           "token counts are online cost inclusive of every probe purchased. "
           "`overhead` is the cost of running the controller and declining to halt, "
           "relative to plain generation. DEER is the authors' code at its default "
-          "configuration, with overhead measured on the same convention.", "",
+          "configuration, with overhead measured on the same convention. Where the "
+          "density levels cover different numbers of items, all levels are scored on "
+          "the items they share.", "",
           "| model | density | probes/item | vanilla acc@tok | overhead | AGREE m=3 acc@tok "
           "| NTC-Select acc@tok | selected rule |", "|---|---|---|---|---|---|---|---|"]
     missing = []
@@ -89,6 +105,8 @@ def main() -> int:
                 continue
             d = json.loads(f.read_text())
             traces, bench = d["traces"], d["benchmark"]
+            if common[model]:
+                traces = [t for t in traces if t["qid"] in common[model]]
             for t in traces:
                 t["natural_correct"] = bool(S.is_correct(t.get("natural_answer", ""), t["gold"], bench))
             has_nll = S.enrich_probes_with_nll(traces)
