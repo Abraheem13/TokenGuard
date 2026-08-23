@@ -29,3 +29,13 @@ external/DEER/logs/
 external/DEER/__pycache__/
 external/DEER/**/__pycache__/
 *.jsonl
+
+# paper build artefacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/main.pdf
+paper/figures/*.pdf
+paper/figures/*.png
