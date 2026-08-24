@@ -48,6 +48,34 @@ LEVELS = [("1x  (every 256 tok, <=10)", "h2h2_math500_Qwen3-{m}.json"),
           ("4x  (every  64 tok, <=40)", "dens4x_math500_Qwen3-{m}.json")]
 
 
+def stickiness(traces, bench, m=3):
+    """Error stickiness measured between CONSECUTIVE probes (Proposition 2).
+
+    Proposition 2 predicts that rho_w rises as checkpoints are placed closer
+    together, because adjacent probes give a wrong answer fewer opportunities to
+    change, and that agreement-based halting must therefore degrade with
+    density.  This measures it.
+    """
+    from collections import Counter
+    rho, qw = [], []
+    for t in traces:
+        pr = [p for p in t["probes"] if p.get("answer")]
+        if len(pr) < 2:
+            continue
+        ans = [p["answer"] for p in pr]
+        wrong = [not S.is_correct(x, t["gold"], bench) for x in ans]
+        pairs = [1.0 if S.is_correct(ans[i + 1], ans[i], bench) else 0.0
+                 for i in range(len(ans) - 1) if wrong[i]]
+        if pairs:
+            rho.append(float(np.mean(pairs)))
+        bad = [x for x, w in zip(ans, wrong) if w]
+        qw.append(Counter(bad).most_common(1)[0][1] / len(ans) if bad else 0.0)
+    if not rho:
+        return float("nan"), float("nan"), float("nan")
+    r, q = float(np.mean(rho)), float(np.mean(qw))
+    return r, q, (r ** (m - 1)) * q
+
+
 def full_set(traces, bench, fn, kw):
     """(accuracy, overhead-inclusive online cost) for a fixed policy."""
     ok, tok = [], []
@@ -94,14 +122,15 @@ def main() -> int:
           "density levels cover different numbers of items, all levels are scored on "
           "the items they share.", "",
           "| model | density | probes/item | vanilla acc@tok | overhead | AGREE m=3 acc@tok "
-          "| NTC-Select acc@tok | selected rule |", "|---|---|---|---|---|---|---|---|"]
+          "| NTC-Select acc@tok | rho_w | P_spur | selected rule |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
     missing = []
     for model in ("Qwen3-4B", "Qwen3-8B"):
         for label, pat in LEVELS:
             f = NTC / pat.format(m=model.split("-")[1])
             if not f.exists():
                 missing.append(f.name)
-                md.append(f"| {model} | {label} | — | *not yet generated* | — | — | — | — |")
+                md.append(f"| {model} | {label} | — | *not yet generated* | — | — | — | — | — | — |")
                 continue
             d = json.loads(f.read_text())
             traces, bench = d["traces"], d["benchmark"]
@@ -131,22 +160,25 @@ def main() -> int:
             finally:
                 S.FAMILIES = saved
             nf_acc, nf_tok = full_set(ev, bench, fams[gfam][0], gkw)
+            rho, qw, psp = stickiness(traces, bench)
             md.append(f"| {model} | {label} | {ppi:.1f} | {van_acc:.3f} @ {van_tok:.0f} "
                       f"| {ovh:+.1f}% | {ag_acc:.3f} @ {ag_tok:.0f} "
-                      f"| {nf_acc:.3f} @ {nf_tok:.0f} | {gfam}{gkw} |")
+                      f"| {nf_acc:.3f} @ {nf_tok:.0f} | {rho:.3f} | {psp:.3f} | {gfam}{gkw} |")
             print(f"{model} {label}: probes/item {ppi:.1f}  vanilla {van_acc:.3f}@{van_tok:.0f}  "
                   f"overhead {ovh:+.1f}%  AGREE {ag_acc:.3f}@{ag_tok:.0f}  "
-                  f"NTC-Select {nf_acc:.3f}@{nf_tok:.0f} ({gfam}{gkw})", flush=True)
+                  f"NTC-Select {nf_acc:.3f}@{nf_tok:.0f}  rho_w {rho:.3f}  P_spur {psp:.3f} "
+                  f"({gfam}{gkw})", flush=True)
         acc, fin, tot = DEER[model]
         md.append(f"| {model} | DEER (authors' code) | — | — | {100*(tot-fin)/fin:+.1f}% | — "
-                  f"| {acc:.3f} @ {tot:.0f} | threshold 0.95 |")
+                  f"| {acc:.3f} @ {tot:.0f} | — | — | threshold 0.95 |")
         print(f"{model} DEER official: {acc:.3f}@{tot:.0f}  overhead {100*(tot-fin)/fin:+.1f}%")
     md += ["", "## Reading", "",
-           "If accuracy rises with density and approaches DEER's while overhead rises "
-           "towards DEER's, the gap of Table 12 is granularity and not signal quality, and "
-           "the honest statement is that the two systems sit at different points on one "
-           "density-overhead trade-off. If accuracy does not rise, the gap is the signal, "
-           "and that should be said plainly."]
+           "Two things to read off. First, whether the controller's accuracy rises with "
+           "density: if it does not, the gap to DEER is not granularity and the paper must "
+           "say so. Second, whether rho_w rises with density: Proposition 2 predicts it "
+           "must, because adjacent probes give a wrong answer fewer opportunities to "
+           "change, and that agreement-based halting must therefore degrade as probes are "
+           "placed closer together."]
     if missing:
         md += ["", f"Missing files ({len(missing)}): " + ", ".join(f"`{m}`" for m in missing) +
                ". Generate with `bash run_queue_density.sh`."]
