@@ -24,7 +24,10 @@ PART="${PART:-gpu-2c-l40s-1g}"
 # A10G ~1.5x, L4 ~2.5x, T4 unsupported (no bfloat16).
 HOURS_SCALE="${HOURS_SCALE:-1}"
 DRY="${1:-}"
-T="python scripts/ntc_w1_thinking.py"
+# Call the venv interpreter directly: sbatch --wrap runs under /bin/sh,
+# which has no "source", and this works the same under both shells.
+PY="${PY:-$HOME/TokenGuard/.venv/bin/python}"
+T="$PY scripts/ntc_w1_thinking.py"
 
 submit () {
   local name="$1" hours="$2" cmd="$3"
@@ -37,7 +40,6 @@ submit () {
 #SBATCH --time=${hours}:00:00
 #SBATCH --output=experiments/ntc/slurm-%x-%j.log
 cd ~/TokenGuard
-source .venv/bin/activate
 ${cmd}
 echo "JOB DONE ${name}"
 SBATCH
