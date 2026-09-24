@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -31,12 +30,15 @@ import numpy as np
 _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here.parents[0] / "src"))
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("w1stats", _here / "ntc_w1_stats.py")
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1stats"] = S
 spec.loader.exec_module(S)
-import tokenguard.reasoning.datasets as _ds
 import importlib as _il
+
+import tokenguard.reasoning.datasets as _ds
+
 _il.reload(_ds)
 S.is_correct = _ds.is_correct
 
@@ -52,7 +54,7 @@ DEER_OFFICIAL = {  # from experiments/ntc/DEER_OFFICIAL.md (authors' code)
 
 def full_set_policy(traces, bench, fn, kw):
     """(acc, overhead-inclusive tokens) for a FIXED policy on the full set."""
-    ok, tok, ovh = [], [], []
+    ok, ovh = [], []
     for t in traces:
         probes = t["probes"]
         kk = fn(probes, **({**kw, "bm": bench} if "bm" in fn.__code__.co_varnames else kw)) \

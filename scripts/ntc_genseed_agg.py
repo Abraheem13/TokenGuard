@@ -33,7 +33,10 @@ spec = importlib.util.spec_from_file_location("w1stats", _here / "ntc_w1_stats.p
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1stats"] = S
 spec.loader.exec_module(S)
-import tokenguard.reasoning.datasets as _ds, importlib as _il
+import importlib as _il
+
+import tokenguard.reasoning.datasets as _ds
+
 _il.reload(_ds)
 S.is_correct = _ds.is_correct
 

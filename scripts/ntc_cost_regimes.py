@@ -27,6 +27,7 @@ import numpy as np
 _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here.parents[0] / "src"))
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("w1s", _here / "ntc_w1_stats.py")
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1s"] = S
@@ -85,7 +86,8 @@ def main() -> int:
             acc, kv, pc, bb = costs(traces, bench, fn, kw, a.prefill_weight)
             rows.append((fam, kw, acc, kv, pc, bb))
         for fam, kw, acc, kv, pc, bb in rows:
-            sv = lambda c: 100 * (1 - c / van)
+            def sv(c, van=van):
+                return 100 * (1 - c / van)
             md.append(f"| {model} | {bench} | {fam}{kw} | {acc:.3f} "
                       f"| {sv(kv):+.1f}% | {sv(pc):+.1f}% | {sv(bb):+.1f}% |")
             print(f"{model:10s} {bench:14s} {fam:16s} acc={acc:.3f}  "

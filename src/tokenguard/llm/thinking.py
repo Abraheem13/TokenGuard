@@ -17,8 +17,7 @@ from __future__ import annotations
 import math
 import os
 import re
-from dataclasses import dataclass, field, asdict
-
+from dataclasses import asdict, dataclass, field
 
 ATP_WORDS = ("Wait", "Alternatively", "Hmm", "But wait", "Let me double-check",
              "Actually", "Let me reconsider")
@@ -171,8 +170,8 @@ class ThinkingRunner:
     def _lazy(self):
         if self._llm is not None:
             return
-        from vllm import LLM
         from transformers import AutoTokenizer
+        from vllm import LLM
         self._tok = AutoTokenizer.from_pretrained(self.model_name)
         self._llm = LLM(model=self.model_name, tensor_parallel_size=self.tp_size,
                         dtype=self.dtype, gpu_memory_utilization=self.gpu_mem,

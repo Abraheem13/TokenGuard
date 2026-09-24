@@ -13,9 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import numpy as np
 
 from tokenguard.baselines import prompts
-from tokenguard.baselines.halting import refrain_halt, mur_halt, vanilla_halt
+from tokenguard.baselines.halting import mur_halt, refrain_halt, vanilla_halt
 from tokenguard.llm.generate import LLMRunner
-from tokenguard.reasoning.datasets import load_benchmark, is_correct
+from tokenguard.reasoning.datasets import is_correct, load_benchmark
 
 
 def _step_token_counts(text: str, n_gen: int, n_steps: int) -> list[int]:

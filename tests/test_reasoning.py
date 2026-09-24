@@ -1,6 +1,6 @@
 """Tests for reasoning benchmark answer extraction + scoring (no downloads)."""
 
-from tokenguard.reasoning.datasets import extract_answer, is_correct, _extract_boxed
+from tokenguard.reasoning.datasets import _extract_boxed, extract_answer, is_correct
 
 
 def test_gsm8k_hash_extract():

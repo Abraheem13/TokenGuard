@@ -25,7 +25,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -35,6 +34,7 @@ import numpy as np
 _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here.parents[0] / "src"))
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("oc", _here / "ntc_operating_curves.py")
 OC = importlib.util.module_from_spec(spec)
 sys.modules["oc"] = OC

@@ -31,8 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import numpy as np
 
-from tokenguard.llm.thinking import ThinkingRunner, build_checkpoints, Probe, ThinkTrace
-from tokenguard.reasoning.datasets import load_benchmark, is_correct
+from tokenguard.llm.thinking import ThinkingRunner, ThinkTrace, build_checkpoints
+from tokenguard.reasoning.datasets import is_correct, load_benchmark
 
 
 def main() -> int:
