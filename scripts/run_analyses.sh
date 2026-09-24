@@ -51,4 +51,5 @@ python scripts/ntc_tail_price.py
 python scripts/ntc_v2_diagnostic.py --probes $NTC/w1_math500_Qwen3-4B.json || true
 python scripts/ntc_data_inventory.py
 python scripts/ntc_corpus_tracks.py
+python scripts/ntc_grader_check.py
 echo "All result files regenerated under $NTC."
