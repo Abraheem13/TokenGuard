@@ -74,8 +74,8 @@ class LLMRunner:
     def _lazy(self):
         if self._llm is not None:
             return
-        from vllm import LLM
         from transformers import AutoTokenizer
+        from vllm import LLM
         self._tok = AutoTokenizer.from_pretrained(self.model_name)
         self._llm = LLM(
             model=self.model_name,

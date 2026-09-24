@@ -18,11 +18,10 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
-
 _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here.parents[0] / "src"))
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("w1s", _here / "ntc_w1_stats.py")
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1s"] = S

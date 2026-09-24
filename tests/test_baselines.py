@@ -1,8 +1,7 @@
 """Tests for halting baselines + prompts."""
 
-from tokenguard.baselines.halting import (vanilla_halt, refrain_halt, mur_halt,
-                                          tokens_after_halt)
 from tokenguard.baselines import prompts
+from tokenguard.baselines.halting import mur_halt, refrain_halt, tokens_after_halt, vanilla_halt
 
 
 def test_vanilla_never_halts_early():

@@ -135,7 +135,8 @@ def main() -> int:
     md += [f"| {k} | {100 * ov[k]:.2f}% |" for k in sorted(ov)]
     md += ["", f"Mean over the {len(canon)} Qwen3 settings: "
                f"{100 * np.mean([ov[k] for k in canon]):.2f}%.", ""]
-    import subprocess, tempfile
+    import subprocess
+    import tempfile
     diag = ["w1_math500_Qwen3-4B.json", "w1_gsm8k_Qwen3-8B.json",
             "w1_gpqa16k_Qwen3-8B_s42.json", "w1_mmlupro_Qwen3-4B_s42.json"]
     md += ["", "## Confidence-gate diagnostic (fusion m=3 versus agreement m=3)", "",
@@ -148,13 +149,13 @@ def main() -> int:
             for f in diag:
                 cmd += ["--probes", str(NTC / f)]
             subprocess.run(cmd, check=True, capture_output=True)
-            rows = [l for l in tmp.read_text().splitlines() if l.startswith("| ")]
+            rows = [ln for ln in tmp.read_text().splitlines() if ln.startswith("| ")]
         md += [f"theta = {th}:", ""] + rows + [""]
     ds = NTC / "w1_math500_DeepSeek-R1-Distill-Qwen-7B.json"
     r = subprocess.run([sys.executable, str(_here / "ntc_w1_stats.py"), "--probes", str(ds)],
                        check=True, capture_output=True, text=True)
-    keep = [l for l in r.stdout.splitlines()
-            if l.startswith(("=== seed-0", "McNemar", "Bootstrap"))]
+    keep = [ln for ln in r.stdout.splitlines()
+            if ln.startswith(("=== seed-0", "McNemar", "Bootstrap"))]
     md += ["## DeepSeek-R1-Distill-Qwen-7B on MATH-500: seed-0 significance", "", "```"] + keep + ["```", ""]
     out = NTC / "DISSERTATION_NUMBERS.md"
     out.write_text("\n".join(md))

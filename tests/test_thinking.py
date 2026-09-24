@@ -1,8 +1,7 @@
 """Network-free tests for the thinking harness pure logic."""
 import math
 
-from tokenguard.llm.thinking import (read_boxed, split_think, build_checkpoints,
-                                     deer_confidence)
+from tokenguard.llm.thinking import build_checkpoints, deer_confidence, read_boxed, split_think
 
 
 def test_read_boxed_nested():

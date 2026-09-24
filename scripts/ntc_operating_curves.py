@@ -25,7 +25,7 @@ Metrics (identical in both protocols)
   A(0.5)    matched-budget accuracy at half the tokens
   B*(eps)   cheapest budget still within eps accuracy points of full thinking
 
-All costs are overhead-inclusive. 
+All costs are overhead-inclusive.
 
     python scripts/ntc_operating_curves.py --probes experiments/ntc/w1_*.json
 """
@@ -36,14 +36,16 @@ import json
 import sys
 from pathlib import Path
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 _here = Path(__file__).resolve().parent
 sys.path.insert(0, str(_here.parents[0] / "src"))
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("w1s", _here / "ntc_w1_stats.py")
 S = importlib.util.module_from_spec(spec)
 sys.modules["w1s"] = S
@@ -129,7 +131,7 @@ def metrics(pts, van_acc, eps=0.01):
 def show(title, table, md):
     print(f"\n  {title}")
     print(f"  {'method':24s} {'AUCC':>7s} {'cover':>7s} {'A(0.5)':>8s} {'B*(1pt)':>9s}")
-    md += [f"", f"**{title}**", "",
+    md += ["", f"**{title}**", "",
            "| method | AUCC | coverage | A(b=0.5) | B*(1 pt) |", "|---|---|---|---|---|"]
     for name, m in sorted(table.items(), key=lambda kv: -kv[1]["aucc"]):
         bs = "—" if np.isnan(m["bstar"]) else f"{m['bstar']:.2f}"

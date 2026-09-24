@@ -2,6 +2,8 @@
 
 | probe file | benchmark | model | items | test pool | calib | eval | checkpoints/item | mean thinking tok | truncated |
 |---|---|---|---|---|---|---|---|---|---|
+| `dens2x_math500_Qwen3-4B.json` | math500 | Qwen3-4B | 500 | 500 | 200 | 300 | 17.4 | 4530 | 6.4% |
+| `dens4x_math500_Qwen3-4B.json` | math500 | Qwen3-4B | 500 | 500 | 200 | 300 | 30.4 | 4488 | 6.4% |
 | `h2h2_aime24_Qwen3-4B.json` | aime24 | Qwen3-4B | 30 | 30 | 12 | 18 | 9.5 | 11508 | 40.0% |
 | `h2h2_aime24_Qwen3-8B.json` | aime24 | Qwen3-8B | 30 | 30 | 12 | 18 | 10.0 | 11206 | 40.0% |
 | `h2h2_gpqa_Qwen3-4B.json` | gpqa_diamond | Qwen3-4B | 198 | 198 | 79 | 119 | 9.5 | 9067 | 23.7% |
@@ -74,9 +76,9 @@
 | aime25 | 240 | 2400 |
 | gpqa_diamond | 3366 | 32781 |
 | gsm8k | 1200 | 9734 |
-| math500 | 4000 | 37419 |
+| math500 | 5000 | 61289 |
 | mmlu_pro | 1200 | 10110 |
-| **all** | **10366** | **96015** |
+| **all** | **11366** | **119885** |
 
 ## What is fitted, and on what
 

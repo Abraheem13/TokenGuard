@@ -193,10 +193,10 @@ def main() -> int:
         rows.append(("NTC-conf (momentum)", theta, r))
     for m in [2, 3]:
         r = evaluate(traces, bench, agree_policy, m=m, bm=bench)
-        rows.append((f"AGREE", m, r))
+        rows.append(("AGREE", m, r))
     for m, theta in [(2, 0.3), (2, 0.5), (2, 0.7), (3, 0.3), (3, 0.5)]:
         r = evaluate(traces, bench, ntc_v2_policy, m=m, theta=theta, bm=bench)
-        rows.append((f"NTC-v2 (agree+conf)", f"{m}/{theta}", r))
+        rows.append(("NTC-v2 (agree+conf)", f"{m}/{theta}", r))
 
     for name, param, r in rows:
         cut = 100 * (1 - r["tokens"] / vanilla_tok)

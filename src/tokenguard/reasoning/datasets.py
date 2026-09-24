@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import re
 import json
+import re
 from pathlib import Path
 
 
@@ -143,9 +143,8 @@ def _get_deer_grader():
     return _DEER_GRADER
 
 
-from functools import lru_cache as _lru
-
 import signal as _signal
+from functools import lru_cache as _lru
 
 
 def _alarm_handler(signum, frame):
@@ -278,6 +277,7 @@ def _load_mmlu_pro(limit):
     already varies across items, so there is no position artifact to correct).
     """
     import random as _random
+
     from datasets import load_dataset
     ds = load_dataset("TIGER-Lab/MMLU-Pro", split="test")
     idx = list(range(len(ds)))

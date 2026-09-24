@@ -1,20 +1,25 @@
-# TokenGuard — developer entry points
-.PHONY: setup check data test lint clean
+# Reproduction entry points. Every target below runs on a CPU from the frozen
+# probe streams in experiments/ntc; only `generate` needs a GPU.
+.PHONY: help install test lint tables corpus clean
 
-setup:            ## create venv + install everything
-	bash setup_env.sh
+help:
+	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*##/ ->/'
 
-check:            ## verify environment & GPU
-	python scripts/day1_setup_check.py
+install:          ## install the package and the analysis dependencies
+	pip install -r requirements.txt && pip install -e .
 
-data:             ## download + canonicalise RouterBench (Day 1 gate)
-	python scripts/day1_download_data.py
-
-test:             ## run the test suite
-	python -m pytest tests/ -v
+test:             ## run the unit tests
+	python -m pytest tests -q
 
 lint:             ## static checks
-	ruff check src/ scripts/ tests/
+	ruff check src scripts tests
 
-clean:            ## remove caches (never touches data/ or experiments/)
+tables:           ## regenerate every result file from the frozen probe streams
+	bash scripts/run_analyses.sh
+
+corpus:           ## regenerate the corpus inventory and track tables
+	python scripts/ntc_data_inventory.py
+	python scripts/ntc_corpus_tracks.py
+
+clean:            ## remove caches (never touches experiments/)
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true

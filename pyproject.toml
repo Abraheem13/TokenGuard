@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tokenguard"
 version = "0.1.0"
-description = "TokenGuard: a multi-timescale, online-learning LLM router (Nested-Learning-inspired) with an OpenAI-compatible proxy."
+description = "Risk-controlled early exit for reasoning language models: probe streams, halting signals and the Nested Token-Budget Controller."
 authors = [{ name = "Raja Abraheem Rashid" }]
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,3 +24,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B"]
+# E402: the analysis scripts bootstrap sys.path before importing the package.
+# E501/E702: long format strings and compact statements in table printers.
+# E731/B905: short local lambdas and zip() without strict, kept for 3.10 support.
+ignore = ["E402", "E501", "E702", "E731", "B905", "B007"]

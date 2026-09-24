@@ -31,7 +31,7 @@ import numpy as np
 
 from tokenguard.baselines import prompts
 from tokenguard.llm.generate import LLMRunner
-from tokenguard.reasoning.datasets import load_benchmark, is_correct
+from tokenguard.reasoning.datasets import is_correct, load_benchmark
 
 
 def momentum_halt(unc, eta=0.6, tau=0.08, patience=4, min_steps=5):
