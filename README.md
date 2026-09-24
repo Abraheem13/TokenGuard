@@ -52,8 +52,8 @@ make corpus               # the corpus inventory and the per-track tables
 
 `make tables` runs `scripts/run_analyses.sh`, which holds the exact command for
 every result file. Each analysis runs on a CPU and reads only committed files, so
-the results regenerate without a GPU or network access. Each script writes one markdown file and prints the
-same table to the terminal.
+the results regenerate without a GPU or network access. Each script writes one
+markdown file and prints the same table to the terminal.
 
 | Result | Script | Output |
 |---|---|---|
@@ -69,6 +69,7 @@ same table to the terminal.
 | Fusion tier under domain shift | `ntc_fusion_transfer.py` | `FUSION_TRANSFER.md` |
 | Pricing the tail | `ntc_tail_price.py` | `TAIL_PRICE.md` |
 | Joint tier (routing) | `ntc_joint_router.py` | `JOINT.md` |
+| Grader reproducibility | `ntc_grader_check.py` | `GRADER_CHECK.md` |
 
 Regenerating the probe streams themselves needs a GPU and vLLM:
 

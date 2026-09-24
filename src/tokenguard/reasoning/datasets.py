@@ -133,6 +133,16 @@ def _get_deer_grader():
     if _DEER_GRADER == "unset":
         try:
             import sys as _sys
+            # Python >= 3.13 removed typing.io, which the antlr4 runtime used by
+            # the grader's LaTeX parser still imports. Without this shim the
+            # import fails and every symbolic comparison silently returns False.
+            if "typing.io" not in _sys.modules:
+                import types as _types
+                import typing as _typing
+                _m = _types.ModuleType("typing.io")
+                _m.TextIO, _m.IO, _m.BinaryIO = (_typing.TextIO, _typing.IO,
+                                                 _typing.BinaryIO)
+                _sys.modules["typing.io"] = _m
             _deer = Path(__file__).resolve().parents[3] / "external" / "DEER"
             (_deer / "utils" / "__init__.py").touch(exist_ok=True)
             _sys.path.insert(0, str(_deer))
