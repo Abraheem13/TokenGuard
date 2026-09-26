@@ -1,16 +1,21 @@
-# Grader determinism
+# Grader reproducibility
 
-Recomputed every cached verdict from scratch with the symbolic grader. Disagreements, if any, are listed below; the analyses read the committed cache, so they do not change any reported number.
+Every cached verdict recomputed from scratch in one process, in cache order. Each disagreement is recomputed again in a fresh interpreter; `fresh` is that verdict. The analyses read the committed cache, so no reported number depends on this recomputation.
 
 | quantity | value |
 |---|---|
-| stored verdicts | 6666 |
-| recomputed | 6666 |
-| disagreements | 6 |
+| stored verdicts | 8340 |
+| recomputed | 8340 |
+| disagreements | 8 |
+| disagreements matching the stored verdict when recomputed in a fresh interpreter | 8 |
 
-- `\cot x` vs `\frac{1}{\sin x \cos x} - \frac{\sin x}{\cos x}`: stored True, recomputed False
-- `\frac{\cos x}{\sin x}` vs `\frac{\cos^2 x}{\cos x \sin x}`: stored True, recomputed False
-- `\cot x` vs `\frac{\cos x}{\sin x}`: stored True, recomputed False
-- `\frac{\cos x}{\sin x}` vs `\cot x`: stored True, recomputed False
-- `\cot x` vs `\frac{1 - \sin^2 x}{\cos x \sin x}`: stored True, recomputed False
-- `\cot x` vs `\frac{1 - \sin^2 x}{\sin x \cos x}`: stored True, recomputed False
+| prediction | reference | stored | sequential | fresh |
+|---|---|---|---|---|
+| `\cot x` | `\frac{1}{\sin x \cos x} - \frac{\sin x}{\cos x}` | True | False | True |
+| `\frac{\cos x}{\sin x}` | `\frac{\cos^2 x}{\cos x \sin x}` | True | False | True |
+| `\cot x` | `\frac{\cos x}{\sin x}` | True | False | True |
+| `\frac{\cos x}{\sin x}` | `\cot x` | True | False | True |
+| `\cot x` | `\frac{1 - \sin^2 x}{\cos x \sin x}` | True | False | True |
+| `\cot x` | `\frac{1 - \sin^2 x}{\sin x \cos x}` | True | False | True |
+| `\dfrac{11 + 9a}{20}` | `\frac{11+9a}{20}` | True | False | True |
+| `\frac{\cos x}{\sin x}` | `\frac{1 - \sin^2 x}{\cos x \sin x}` | True | False | True |

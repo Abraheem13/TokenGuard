@@ -1,4 +1,6 @@
-# SLO attainment — held-out accuracy deficit (points) and token cut (%)
+# Accuracy-target attainment: accuracy change (points) and token cut (%)
+
+Accuracy change against full generation on the evaluation items, averaged over generation seeds and calibration splits, with the token cut in brackets. `vanilla` is the accuracy of full generation. `n/a`: the method does not apply to that setting.
 
 | setting | vanilla | NTC-full(e=0.01) | NTC-full(e=0.05) | AGREE | DEER | NTC-conf | EAT | MUR-mom | NTC-v2 | REFRAIN-SWUCB |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -16,12 +18,12 @@
 
 ## Attainment rates (fraction of settings within the bound)
 
-- `NTC-full(e=0.01)` — within 1.0pt:   82%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -1.6pt
-- `NTC-full(e=0.05)` — within 1.0pt:   82%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -1.6pt
-- `AGREE` — within 1.0pt:   27%   within 2.5pt:   36%   within 5.0pt:   36%   worst: -23.5pt
-- `DEER` — within 1.0pt:   64%   within 2.5pt:   64%   within 5.0pt:   82%   worst: -7.5pt
-- `NTC-conf` — within 1.0pt:   55%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -2.4pt
-- `EAT` — within 1.0pt:   36%   within 2.5pt:   73%   within 5.0pt:  100%   worst: -3.4pt
-- `MUR-mom` — within 1.0pt:   55%   within 2.5pt:   55%   within 5.0pt:   64%   worst: -23.6pt
-- `NTC-v2` — within 1.0pt:  100%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -0.5pt
-- `REFRAIN-SWUCB` — within 1.0pt:    9%   within 2.5pt:   27%   within 5.0pt:   45%   worst: -20.9pt
+- `NTC-full(e=0.01)`: within 1.0pt:   82%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -1.6pt
+- `NTC-full(e=0.05)`: within 1.0pt:   82%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -1.6pt
+- `AGREE`: within 1.0pt:   27%   within 2.5pt:   36%   within 5.0pt:   36%   worst: -23.5pt
+- `DEER`: within 1.0pt:   64%   within 2.5pt:   64%   within 5.0pt:   82%   worst: -7.5pt
+- `NTC-conf`: within 1.0pt:   55%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -2.4pt
+- `EAT`: within 1.0pt:   36%   within 2.5pt:   73%   within 5.0pt:  100%   worst: -3.4pt
+- `MUR-mom`: within 1.0pt:   55%   within 2.5pt:   55%   within 5.0pt:   64%   worst: -23.6pt
+- `NTC-v2`: within 1.0pt:  100%   within 2.5pt:  100%   within 5.0pt:  100%   worst: -0.5pt
+- `REFRAIN-SWUCB`: within 1.0pt:    9%   within 2.5pt:   27%   within 5.0pt:   45%   worst: -20.9pt

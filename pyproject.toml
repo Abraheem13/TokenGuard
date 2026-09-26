@@ -4,12 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tokenguard"
-version = "0.1.0"
-description = "Risk-controlled early exit for reasoning language models: probe streams, halting signals and the Nested Token-Budget Controller."
+version = "1.0.0"
+description = "Risk-controlled early exit for reasoning language models: probe streams, halting rules and the Nested Token-Budget Controller."
 authors = [{ name = "Raja Abraheem Rashid" }]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+dependencies = ["numpy>=1.26", "scikit-learn>=1.5"]
+
+[project.optional-dependencies]
+grader = ["sympy>=1.12", "regex", "word2number", "latex2sympy2==1.9.1",
+          "antlr4-python3-runtime==4.7.2"]
+generate = ["vllm", "transformers", "datasets"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.urls]
+Repository = "https://github.com/Abraheem13/TokenGuard"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -19,12 +29,17 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 target-version = "py310"
+extend-exclude = ["external"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B"]
-# E402: the analysis scripts bootstrap sys.path before importing the package.
-# E501/E702: long format strings and compact statements in table printers.
-# E731/B905: short local lambdas and zip() without strict, kept for 3.10 support.
-ignore = ["E402", "E501", "E702", "E731", "B905", "B007"]
+# E402: the scripts put src/ on sys.path before importing the package.
+# E731, B905: short local lambdas, and zip() without strict= for Python 3.10.
+ignore = ["E402", "E731", "B905"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tokenguard", "ntc_w1_stats", "ntc_operating_curves",
+                     "ntc_primary_stats", "ntc_shift_certificate", "ntc_h2h_table",
+                     "ntc_v2_diagnostic"]

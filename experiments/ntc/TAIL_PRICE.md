@@ -1,6 +1,6 @@
-# Pricing the tail (11 canonical settings)
+# Pricing the tail (11 settings)
 
-Utility of deploying method M on setting s is `cut - kappa * max(0, -delta)`, kappa in token-saving points forgone per accuracy point.
+Utility of deploying method M on setting s is `cut - kappa * max(0, -delta)`, with kappa in token-saving points forgone per accuracy point.
 
 | method | mean cut | mean delta | worst delta |
 |---|---|---|---|

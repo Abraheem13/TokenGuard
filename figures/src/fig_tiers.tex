@@ -1,0 +1,20 @@
+% The tiers, ordered by what they require
+\begin{tikzpicture}[dgm]
+\def\PB{3.45}                   % pitch between tier centres (cm)
+\tikzset{t/.style={dnode,text width=2.86cm,minimum height=2.50cm}}
+\node[t] (t1) at (-1.5*\PB,0) {\textbf{FAST}\\[3pt] one per-checkpoint signal\\[4pt]
+  \textit{requires} the probe stream\\[1pt] \textit{guarantee} none};
+\node[t,fill=black!10] (t2) at (-0.5*\PB,0) {\textbf{FUSION}\\[3pt] agreement gated by
+  smoothed confidence\\[4pt] \textit{requires} two parameters, set once\\[1pt]
+  \textit{guarantee} none};
+\node[t] (t3) at (0.5*\PB,0) {\textbf{SELECTION}\\[3pt] certified choice from
+  $\mathcal{C}$\\[4pt] \textit{requires} a labelled calibration split\\[1pt]
+  \textit{guarantee} Theorem~\ref{thm:risk}};
+\node[t] (t4) at (1.5*\PB,0) {\textbf{JOINT}\\[3pt] tier choice and model
+  routing\\[4pt] \textit{requires} a second, smaller model\\[1pt]
+  \textit{guarantee} inherited};
+\foreach \x/\y in {t1/t2,t2/t3,t3/t4} \draw[dflow] (\x) -- (\y);
+\draw[dflow] ($(t1.south west)+(0,-0.32)$) -- ($(t4.south east)+(0,-0.32)$)
+  node[midway,below=1pt,font=\scriptsize\itshape]
+  {each tier adds exactly one requirement to the tier on its left};
+\end{tikzpicture}

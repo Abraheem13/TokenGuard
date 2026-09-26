@@ -1,43 +1,36 @@
 #!/usr/bin/env python
-"""P0 FIX #5 — overhead accounting under three deployment regimes.
+"""Net token saving of each halting rule under three serving regimes.
 
-Our headline "3-5% probe overhead" implicitly assumes an engine that can fork
-the KV cache and resume. Reviewers (correctly) ask what happens without it.
-This script recomputes every policy's cost under:
+What a probe costs depends on the serving engine:
 
-  kv-fork      : probes cost DECODE tokens only (prefix reused, resume free)
-  prefix-cache : probes additionally re-prefill the answer cue (cached prefix)
-  black-box    : every probe re-sends the WHOLE prefix (no reuse at all)
+  KV-fork       the probe branches from the cached prefix: it costs only the
+                tokens it decodes
+  prefix-cache  as KV-fork, and the answer cue is prefilled again
+  black-box     every probe resends the whole prefix, which is prefilled again
 
-Prefill tokens are charged at weight w (default 0.2 decode-token equivalents,
-since prefill is compute-bound and cheaper per token); w is a CLI flag so the
-sensitivity is explicit rather than hidden.
+Prefill tokens are charged at a weight w decode-token equivalents (default 0.2,
+set with --prefill-weight). Each rule is evaluated on all items at the middle
+value of its parameter grid; savings are relative to full generation.
 
-    python scripts/ntc_cost_regimes.py --probes experiments/ntc/w1_*.json
+Writes experiments/ntc/COST_REGIMES.md.
+
+    python scripts/ntc_cost_regimes.py --probes experiments/ntc/w1_gsm8k_Qwen3-4B.json ...
 """
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 
-_here = Path(__file__).resolve().parent
-sys.path.insert(0, str(_here.parents[0] / "src"))
-import importlib.util
+import ntc_w1_stats as S
 
-spec = importlib.util.spec_from_file_location("w1s", _here / "ntc_w1_stats.py")
-S = importlib.util.module_from_spec(spec)
-sys.modules["w1s"] = S
-spec.loader.exec_module(S)
-
-CUE_TOKENS = 12  # length of the forced-answer cue we inject
+CUE_TOKENS = 12  # length of the answer cue appended at each probe
 
 
 def costs(traces, bench, fn, kw, w):
-    """Return (acc, kv, pc, bb) mean per-item costs in decode-token equivalents."""
+    """(accuracy, KV-fork, prefix-cache, black-box) mean per-item cost."""
     ok, kv, pc, bb = [], [], [], []
     for t in traces:
         pr = t["probes"]
@@ -66,9 +59,10 @@ def main() -> int:
     ap.add_argument("--out", default="experiments/ntc/COST_REGIMES.md")
     a = ap.parse_args()
 
-    md = ["# Probe-overhead accounting under three deployment regimes",
-          f"(prefill charged at w={a.prefill_weight} decode-token equivalents; "
-          "savings are % vs full thinking)", "",
+    md = ["# Net token saving under three serving regimes", "",
+          f"Prefill is charged at w = {a.prefill_weight} decode-token equivalents. Each rule "
+          "runs at the middle value of its parameter grid on all items; savings are "
+          "relative to full generation, and a negative saving is a net cost.", "",
           "| model | benchmark | policy | acc | KV-fork | prefix-cache | black-box |",
           "|---|---|---|---|---|---|---|"]
     for pf in a.probes:
@@ -80,25 +74,15 @@ def main() -> int:
                 S.is_correct(t.get("natural_answer", ""), t["gold"], bench))
         van = float(np.mean([t["n_total_tokens"] for t in traces]))
         S.enrich_probes_with_nll(traces)
-        rows = []
         for fam, (fn, grid) in S.FAMILIES.items():
             kw = grid[len(grid) // 2]
             acc, kv, pc, bb = costs(traces, bench, fn, kw, a.prefill_weight)
-            rows.append((fam, kw, acc, kv, pc, bb))
-        for fam, kw, acc, kv, pc, bb in rows:
-            def sv(c, van=van):
-                return 100 * (1 - c / van)
+            sv = [100 * (1 - c / van) for c in (kv, pc, bb)]
             md.append(f"| {model} | {bench} | {fam}{kw} | {acc:.3f} "
-                      f"| {sv(kv):+.1f}% | {sv(pc):+.1f}% | {sv(bb):+.1f}% |")
+                      f"| {sv[0]:+.1f}% | {sv[1]:+.1f}% | {sv[2]:+.1f}% |")
             print(f"{model:10s} {bench:14s} {fam:16s} acc={acc:.3f}  "
-                  f"kv={sv(kv):+6.1f}%  pc={sv(pc):+6.1f}%  bb={sv(bb):+7.1f}%")
+                  f"kv={sv[0]:+6.1f}%  pc={sv[1]:+6.1f}%  bb={sv[2]:+7.1f}%")
         print()
-    md.append("")
-    md.append("Interpretation: our headline savings assume the KV-fork regime "
-              "(an engine that forks and resumes). Under prefix-cache the cost "
-              "is nearly identical because only the short cue is re-prefilled; "
-              "under a pure black-box API that re-sends the prefix at every "
-              "checkpoint, probing can erase the savings entirely.")
     Path(a.out).write_text("\n".join(md) + "\n")
     print(f"table: {a.out}")
     return 0

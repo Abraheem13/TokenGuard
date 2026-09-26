@@ -1,64 +1,55 @@
 #!/usr/bin/env python
-"""Assemble the paper's head-to-head Table 1: DEER (authors' official code,
-default config) vs our methods, under IDENTICAL conditions (same models, same
-data, 16k thinking budget, greedy decoding, same sympy grader).
+"""Matched comparison with DEER.
 
-Fairness protocol:
-  * DEER ran with its fixed default threshold (0.95) on the FULL set.
-  * We therefore report AGREE with its fixed default (m=3) on the FULL set
-    (apples-to-apples: fixed defaults vs fixed defaults), plus NTC-full whose
-    (signal, param) is calibrated on a 40% warm-up and reported on the 60%
-    held-out split (marked with a dagger in the table).
-  * Token accounting: ours = thinking-at-halt + emitted answer + ALL probe
-    tokens paid online (overhead-inclusive); DEER's token_num likewise
-    includes its trial-answer inductions. Both are the honest online cost.
+DEER was run from its authors' code at its default configuration (threshold
+0.95) on the same models and items, with a 16k thinking budget, greedy decoding
+and the same grader; its results are recorded in experiments/ntc/DEER_OFFICIAL.md.
+Under identical conditions this script reports, per setting:
 
-Usage:
-    python scripts/ntc_h2h_table.py \
-        --h2h experiments/ntc/h2h_math500_Qwen3-4B.json ... (all six)
+  * full generation, with the last probe's answer used for traces that reach the
+    budget without an answer (budget forcing, as DEER does);
+  * answer agreement at its default m = 3, on all items;
+  * the selection tier, calibrated on 40% of the items and scored on the other 60%.
+
+Token counts are the online cost: thinking up to the halt plus every probe paid,
+matching DEER's count, which includes its trial answers.
+
+Writes experiments/ntc/H2H_TABLE.md.
+
+    python scripts/ntc_h2h_table.py --h2h experiments/ntc/h2h2_math500_Qwen3-4B.json ...
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 
-_here = Path(__file__).resolve().parent
-sys.path.insert(0, str(_here.parents[0] / "src"))
-import importlib.util
+import ntc_w1_stats as S
 
-spec = importlib.util.spec_from_file_location("w1stats", _here / "ntc_w1_stats.py")
-S = importlib.util.module_from_spec(spec)
-sys.modules["w1stats"] = S
-spec.loader.exec_module(S)
-import importlib as _il
+NTC = Path(__file__).resolve().parents[1] / "experiments" / "ntc"
+BENCH = {"math500": "math500", "gpqa": "gpqa_diamond", "aime24": "aime24"}
 
-import tokenguard.reasoning.datasets as _ds
 
-_il.reload(_ds)
-S.is_correct = _ds.is_correct
-
-DEER_OFFICIAL = {  # from experiments/ntc/DEER_OFFICIAL.md (authors' code)
-    ("Qwen3-4B", "math500"): (0.9200, 3538.8),
-    ("Qwen3-4B", "gpqa_diamond"): (0.5455, 7535.9),
-    ("Qwen3-4B", "aime24"): (0.6667, 10534.8),
-    ("Qwen3-8B", "math500"): (0.9300, 2946.2),
-    ("Qwen3-8B", "gpqa_diamond"): (0.5758, 8872.2),
-    ("Qwen3-8B", "aime24"): (0.6667, 10011.5),
-}
+def deer_official() -> dict:
+    """(model, benchmark) -> (accuracy, final-chain tokens, total tokens incl. trials)."""
+    out = {}
+    for ln in (NTC / "DEER_OFFICIAL.md").read_text().split("\n## ")[0].splitlines():
+        c = [x.strip() for x in ln.strip("|").split("|")]
+        if ln.startswith("|") and len(c) == 5 and c[1] in BENCH:
+            out[(c[0], BENCH[c[1]])] = (float(c[2]), float(c[3]), float(c[4]))
+    return out
 
 
 def full_set_policy(traces, bench, fn, kw):
-    """(acc, overhead-inclusive tokens) for a FIXED policy on the full set."""
+    """(accuracy, overhead-inclusive tokens) of a fixed rule on the given items."""
     ok, ovh = [], []
     for t in traces:
         probes = t["probes"]
         kk = fn(probes, **({**kw, "bm": bench} if "bm" in fn.__code__.co_varnames else kw)) \
-             if probes else None
+            if probes else None
         if kk is None:
             ok.append(bool(t["natural_correct"]))
             ovh.append(t["n_total_tokens"] + sum(p["n_probe_tokens"] for p in probes))
@@ -76,65 +67,52 @@ def main() -> int:
     ap.add_argument("--out", default="experiments/ntc/H2H_TABLE.md")
     args = ap.parse_args()
 
+    deer_all = deer_official()
     rows = []
     for pf in args.h2h:
         d = json.loads(Path(pf).read_text())
         traces, bench, model = d["traces"], d["benchmark"], d["model"].split("/")[-1]
-        # rescore natural_correct with current grader (retroactive fairness)
         for t in traces:
             t["natural_correct"] = bool(S.is_correct(t.get("natural_answer", ""),
                                                      t["gold"], bench))
-        van_acc = float(np.mean([t["natural_correct"] for t in traces]))
-        van_tok = float(np.mean([t["n_total_tokens"] for t in traces]))
-        # budget-forced vanilla (standard practice; mirrors DEER's think_ratio
-        # forcing): if the trace hit the cap without a natural answer, use the
-        # LAST probe's forced answer (already generated — pure post-processing)
         bf_ok, bf_tok = [], []
         for t in traces:
             if t["natural_correct"] or not t["probes"]:
-                bf_ok.append(t["natural_correct"]); bf_tok.append(t["n_total_tokens"])
+                bf_ok.append(t["natural_correct"])
+                bf_tok.append(t["n_total_tokens"])
             elif not t.get("natural_answer", "").strip():
                 lp = t["probes"][-1]
                 bf_ok.append(S.is_correct(lp["answer"], t["gold"], bench))
                 bf_tok.append(t["n_total_tokens"] + lp["n_probe_tokens"])
             else:
-                bf_ok.append(t["natural_correct"]); bf_tok.append(t["n_total_tokens"])
+                bf_ok.append(t["natural_correct"])
+                bf_tok.append(t["n_total_tokens"])
         vbf_acc, vbf_tok = float(np.mean(bf_ok)), float(np.mean(bf_tok))
 
-        # AGREE m=3 fixed default on FULL set (mirror of DEER's fixed 0.95)
-        ag_acc, ag_tok = full_set_policy(traces, bench, S.agree_policy,
-                                         {"m": 3})
-        # NTC-full calibrated (warm-up 40%), held-out reported
+        ag_acc, ag_tok = full_set_policy(traces, bench, S.agree_policy, {"m": 3})
+
         n = len(traces)
-        rng = np.random.default_rng(0)
-        idx = rng.permutation(n)
+        idx = np.random.default_rng(0).permutation(n)
         warm = [traces[i] for i in idx[:int(n * args.warmup_frac)]]
         ev = [traces[i] for i in idx[int(n * args.warmup_frac):]]
         if S.enrich_probes_with_nll(traces):
-            S.FAMILIES["MUR-mom"] = (S.mur_policy,
-                                     [{"gamma": g} for g in (0.7, 0.8, 0.9)])
-        picks, (gfam, gkw) = S.calibrate(warm, bench, eps=0.01)
+            S.FAMILIES["MUR-mom"] = (S.mur_policy, [{"gamma": g} for g in (0.7, 0.8, 0.9)])
+        _, (gfam, gkw) = S.calibrate(warm, bench, eps=0.01)
         nf_acc, nf_tok = full_set_policy(ev, bench, S.FAMILIES[gfam][0], gkw)
-        ev_van_tok = float(np.mean([t["n_total_tokens"] for t in ev]))
 
-        deer = DEER_OFFICIAL.get((model, bench), (float("nan"), float("nan")))
-        rows.append({
-            "model": model, "bench": bench, "n": n,
-            "van_acc": van_acc, "van_tok": van_tok,
-            "vbf_acc": vbf_acc, "vbf_tok": vbf_tok,
-            "deer_acc": deer[0], "deer_tok": deer[1],
-            "ag_acc": ag_acc, "ag_tok": ag_tok,
-            "nf_acc": nf_acc, "nf_tok": nf_tok, "nf_pick": f"{gfam}{gkw}",
-            "ev_van_tok": ev_van_tok,
-        })
-        print(f"[done] {model} {bench}: vanilla {van_acc:.3f} (BF {vbf_acc:.3f}) | "
-              f"AGREE {ag_acc:.3f}@{ag_tok:.0f} | DEER {deer[0]:.3f}@{deer[1]:.0f} | "
-              f"NTC-full† {nf_acc:.3f}@{nf_tok:.0f} ({gfam})")
+        deer = deer_all.get((model, bench), (float("nan"),) * 3)
+        rows.append({"model": model, "bench": bench, "n": n,
+                     "vbf_acc": vbf_acc, "vbf_tok": vbf_tok,
+                     "deer_acc": deer[0], "deer_tok": deer[2],
+                     "ag_acc": ag_acc, "ag_tok": ag_tok,
+                     "nf_acc": nf_acc, "nf_tok": nf_tok, "nf_pick": f"{gfam}{gkw}"})
+        print(f"{model} {bench}: full generation {vbf_acc:.3f} | AGREE {ag_acc:.3f}@{ag_tok:.0f} | "
+              f"DEER {deer[0]:.3f}@{deer[2]:.0f} | NTC-full {nf_acc:.3f}@{nf_tok:.0f} ({gfam})")
 
-    md = ["# Head-to-head Table 1 — identical conditions",
-          "(same models, data, 16k thinking budget, greedy decoding, sympy grader;",
-          "token counts are ONLINE cost incl. all probe/trial tokens)",
-          "",
+    md = ["# Matched comparison with DEER", "",
+          "Same models and items, 16k thinking budget, greedy decoding, one symbolic "
+          "grader. Each cell is accuracy @ mean tokens per item, counting every probe or "
+          "trial answer paid online. `vanilla-BF`: full generation with budget forcing.", "",
           "| model | benchmark | vanilla-BF acc@tok | DEER official acc@tok "
           "| AGREE(m=3) acc@tok | NTC-full† acc@tok | NTC-full pick |",
           "|---|---|---|---|---|---|---|"]
@@ -145,9 +123,9 @@ def main() -> int:
                   f"| {r['ag_acc']:.3f} @ {r['ag_tok']:.0f} "
                   f"| {r['nf_acc']:.3f} @ {r['nf_tok']:.0f} "
                   f"| {r['nf_pick']} |")
-    md += ["", "† NTC-full: (signal, param) calibrated on 40% warm-up, held-out "
-           "60% reported; others are fixed-default policies on the full set "
-           "(DEER's default lambda=0.95, AGREE's default m=3)."]
+    md += ["", "† NTC-full (the selection tier) is calibrated on 40% of the items and scored "
+           "on the other 60%; the other columns are fixed defaults on all items (DEER "
+           "threshold 0.95, agreement m = 3)."]
     Path(args.out).write_text("\n".join(md) + "\n")
     print(f"\ntable: {args.out}")
     return 0

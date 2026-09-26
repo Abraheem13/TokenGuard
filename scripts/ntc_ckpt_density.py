@@ -1,62 +1,40 @@
 #!/usr/bin/env python
-"""Does checkpoint density explain the accuracy gap to DEER?
+"""Checkpoint density: does probing more often close the gap to DEER?
 
-Section 6.6 attributes our residual accuracy gap on MATH-500 to granularity: we
-probe every 256 thinking tokens and cap at 10 probes, while DEER interrupts at
-every reasoning transition and pays 66-79% of the chain in trial answers.  This
-script measures the trade directly across density levels produced by
-run_queue_density.sh, under conditions otherwise identical to the head-to-head
-track (greedy, 16k budget, n=500, same grader).
+The controller probes every 256 thinking tokens, at most ten times; DEER
+induces a trial answer at every reasoning transition. This sweep repeats the
+matched MATH-500 run (greedy, 16k budget, n = 500, same grader) at two and
+four times the checkpoint density and reports, per level: probes per item,
+full-generation accuracy and cost, the overhead of probing without halting,
+answer agreement (m = 3), the selection tier (calibrated on 40% of the items,
+eps = 0.05, scored on the other 60%), and the error stickiness between
+consecutive probes, rho_w, with P_spur = rho_w^(m-1) * q_w.
 
-Runs on whatever density files exist and says which are missing, so it can be
-used before and after the GPU sweep.  Writes experiments/ntc/CKPT_DENSITY.md.
+All levels of a model are scored on the items they share. Models without
+density files are skipped. Writes experiments/ntc/CKPT_DENSITY.md.
 
     python scripts/ntc_ckpt_density.py
 """
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
-import sys
-import types
-import typing
+from collections import Counter
 from pathlib import Path
-
-if "typing.io" not in sys.modules:  # pragma: no cover - environment shim
-    _m = types.ModuleType("typing.io")
-    _m.TextIO, _m.IO, _m.BinaryIO = typing.TextIO, typing.IO, typing.BinaryIO
-    sys.modules["typing.io"] = _m
 
 import numpy as np
 
-_here = Path(__file__).resolve().parent
-ROOT = _here.parent
-sys.path.insert(0, str(ROOT / "src"))
-spec = importlib.util.spec_from_file_location("w1s", _here / "ntc_w1_stats.py")
-S = importlib.util.module_from_spec(spec)
-sys.modules["w1s"] = S
-spec.loader.exec_module(S)
+import ntc_w1_stats as S
+from ntc_h2h_table import deer_official
 
-NTC = ROOT / "experiments" / "ntc"
-
-# DEER run from the authors' code at its default configuration (DEER_OFFICIAL.md)
-DEER = {"Qwen3-4B": (0.9200, 2042.7, 3538.8), "Qwen3-8B": (0.9300, 1649.0, 2946.2)}
-
+NTC = Path(__file__).resolve().parents[1] / "experiments" / "ntc"
 LEVELS = [("1x  (every 256 tok, <=10)", "h2h2_math500_Qwen3-{m}.json"),
           ("2x  (every 128 tok, <=20)", "dens2x_math500_Qwen3-{m}.json"),
           ("4x  (every  64 tok, <=40)", "dens4x_math500_Qwen3-{m}.json")]
 
 
 def stickiness(traces, bench, m=3):
-    """Error stickiness measured between CONSECUTIVE probes (Proposition 2).
-
-    Proposition 2 predicts that rho_w rises as checkpoints are placed closer
-    together, because adjacent probes give a wrong answer fewer opportunities to
-    change, and that agreement-based halting must therefore degrade with
-    density.  This measures it.
-    """
-    from collections import Counter
+    """(rho_w, q_w, P_spur) between consecutive probes."""
     rho, qw = [], []
     for t in traces:
         pr = [p for p in t["probes"] if p.get("answer")]
@@ -77,7 +55,7 @@ def stickiness(traces, bench, m=3):
 
 
 def full_set(traces, bench, fn, kw):
-    """(accuracy, overhead-inclusive online cost) for a fixed policy."""
+    """(accuracy, overhead-inclusive online cost) of a fixed rule."""
     ok, tok = [], []
     for t in traces:
         pr = t["probes"]
@@ -99,48 +77,39 @@ def main() -> int:
     ap.add_argument("--out", default=str(NTC / "CKPT_DENSITY.md"))
     a = ap.parse_args()
 
-    # Restrict every density level of a model to the items they share, so a
-    # sweep run with a smaller --limit still compares like with like.
+    deer = deer_official()
+    models = []
     common = {}
     for model in ("Qwen3-4B", "Qwen3-8B"):
-        sets = []
-        for _, pat in LEVELS:
-            f = NTC / pat.format(m=model.split("-")[1])
-            if f.exists():
-                sets.append({t["qid"] for t in json.loads(f.read_text())["traces"]})
-        common[model] = set.intersection(*sets) if sets else set()
-        if sets and len(common[model]) < max(len(x) for x in sets):
-            print(f"[{model}] density levels share {len(common[model])} of "
-                  f"{max(len(x) for x in sets)} items; comparing on the shared subset")
+        files = [NTC / pat.format(m=model.split("-")[1]) for _, pat in LEVELS]
+        if not all(f.exists() for f in files):
+            print(f"{model}: density files not present; skipped")
+            continue
+        models.append(model)
+        sets = [{t["qid"] for t in json.loads(f.read_text())["traces"]} for f in files]
+        common[model] = set.intersection(*sets)
 
     md = ["# Checkpoint density: what does probing more often buy?", "",
-          "MATH-500, n=500, greedy decoding, 16k thinking budget, one symbolic grader; "
-          "token counts are online cost inclusive of every probe purchased. "
-          "`overhead` is the cost of running the controller and declining to halt, "
-          "relative to plain generation. DEER is the authors' code at its default "
-          "configuration, with overhead measured on the same convention. Where the "
-          "density levels cover different numbers of items, all levels are scored on "
-          "the items they share.", "",
+          "MATH-500, n = 500, greedy decoding, 16k thinking budget, one symbolic grader. "
+          "Each `acc@tok` cell is accuracy @ mean online tokens per item, counting every "
+          "probe paid. `overhead` is the cost of probing at every checkpoint without "
+          "halting, relative to full generation. The selection tier (NTC-Select) is "
+          f"calibrated on {a.warmup_frac:.0%} of the items with eps = {a.eps} and scored on "
+          "the rest. rho_w is the error stickiness between consecutive probes and "
+          "P_spur = rho_w^2 * q_w. DEER is the authors' code at its default "
+          "configuration, with overhead measured on the same convention.", "",
           "| model | density | probes/item | vanilla acc@tok | overhead | AGREE m=3 acc@tok "
           "| NTC-Select acc@tok | rho_w | P_spur | selected rule |",
           "|---|---|---|---|---|---|---|---|---|---|"]
-    missing = []
-    for model in ("Qwen3-4B", "Qwen3-8B"):
+    for model in models:
         for label, pat in LEVELS:
-            f = NTC / pat.format(m=model.split("-")[1])
-            if not f.exists():
-                missing.append(f.name)
-                md.append(f"| {model} | {label} | — | *not yet generated* | — | — | — | — | — | — |")
-                continue
-            d = json.loads(f.read_text())
-            traces, bench = d["traces"], d["benchmark"]
-            if common[model]:
-                traces = [t for t in traces if t["qid"] in common[model]]
+            d = json.loads((NTC / pat.format(m=model.split("-")[1])).read_text())
+            bench = d["benchmark"]
+            traces = [t for t in d["traces"] if t["qid"] in common[model]]
             for t in traces:
                 t["natural_correct"] = bool(S.is_correct(t.get("natural_answer", ""), t["gold"], bench))
-            has_nll = S.enrich_probes_with_nll(traces)
             fams = dict(S.FAMILIES)
-            if has_nll:
+            if S.enrich_probes_with_nll(traces):
                 fams["MUR-mom"] = (S.mur_policy, [{"gamma": g} for g in (0.7, 0.8, 0.9)])
             ppi = float(np.mean([len(t["probes"]) for t in traces]))
             van_acc = float(np.mean([t["natural_correct"] for t in traces]))
@@ -160,32 +129,20 @@ def main() -> int:
             finally:
                 S.FAMILIES = saved
             nf_acc, nf_tok = full_set(ev, bench, fams[gfam][0], gkw)
-            rho, qw, psp = stickiness(traces, bench)
+            rho, _, psp = stickiness(traces, bench)
             md.append(f"| {model} | {label} | {ppi:.1f} | {van_acc:.3f} @ {van_tok:.0f} "
                       f"| {ovh:+.1f}% | {ag_acc:.3f} @ {ag_tok:.0f} "
                       f"| {nf_acc:.3f} @ {nf_tok:.0f} | {rho:.3f} | {psp:.3f} | {gfam}{gkw} |")
-            print(f"{model} {label}: probes/item {ppi:.1f}  vanilla {van_acc:.3f}@{van_tok:.0f}  "
+            print(f"{model} {label}: probes/item {ppi:.1f}  full {van_acc:.3f}@{van_tok:.0f}  "
                   f"overhead {ovh:+.1f}%  AGREE {ag_acc:.3f}@{ag_tok:.0f}  "
                   f"NTC-Select {nf_acc:.3f}@{nf_tok:.0f}  rho_w {rho:.3f}  P_spur {psp:.3f} "
                   f"({gfam}{gkw})", flush=True)
-        acc, fin, tot = DEER[model]
-        md.append(f"| {model} | DEER (authors' code) | — | — | {100*(tot-fin)/fin:+.1f}% | — "
-                  f"| {acc:.3f} @ {tot:.0f} | — | — | threshold 0.95 |")
-        print(f"{model} DEER official: {acc:.3f}@{tot:.0f}  overhead {100*(tot-fin)/fin:+.1f}%")
-    md += ["", "## Reading", "",
-           "Two things to read off. First, whether the controller's accuracy rises with "
-           "density: if it does not, the gap to DEER is not granularity and the paper must "
-           "say so. Second, whether rho_w rises with density: Proposition 2 predicts it "
-           "must, because adjacent probes give a wrong answer fewer opportunities to "
-           "change, and that agreement-based halting must therefore degrade as probes are "
-           "placed closer together."]
-    if missing:
-        md += ["", f"Missing files ({len(missing)}): " + ", ".join(f"`{m}`" for m in missing) +
-               ". Generate with `bash run_queue_density.sh`."]
+        acc, fin, tot = deer[(model, "math500")]
+        md.append(f"| {model} | DEER (authors' code) | n/a | n/a | {100*(tot-fin)/fin:+.1f}% | n/a "
+                  f"| {acc:.3f} @ {tot:.0f} | n/a | n/a | threshold 0.95 |")
+        print(f"{model} DEER: {acc:.3f}@{tot:.0f}  overhead {100*(tot-fin)/fin:+.1f}%")
     Path(a.out).write_text("\n".join(md) + "\n")
     print(f"\ntable: {a.out}")
-    if missing:
-        print(f"missing {len(missing)} density files; run: bash run_queue_density.sh")
     return 0
 
 

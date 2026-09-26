@@ -1,0 +1,63 @@
+% Shared style of the figures: the fonts, colours and TikZ/pgfplots styles of the
+% dissertation, for standalone builds with pdfLaTeX (see build.sh).
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{helvet}
+\renewcommand{\rmdefault}{phv}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{courier}
+\usepackage[italic]{mathastext}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,shapes.geometric,
+                decorations.pathreplacing}
+
+\definecolor{brunelnavy}{HTML}{1F3864}
+\definecolor{midnavy}{HTML}{2E5090}
+\definecolor{accent}{HTML}{1C7192}
+\definecolor{lightbox}{HTML}{EEF2F8}
+\definecolor{rulegrey}{HTML}{B8C4D9}
+\definecolor{textgrey}{HTML}{4A4A4A}
+\definecolor{lossred}{HTML}{A3342C}
+\definecolor{gainteal}{HTML}{1C7192}
+
+\newcommand{\tiername}[1]{\mbox{\fontsize{9.5}{11}\selectfont\MakeUppercase{#1}}}
+\newcommand{\fname}[1]{{\ttfamily\fontsize{7.6}{9.2}\selectfont #1}}
+\newcommand{\dtitle}[1]{{\bfseries #1}\\[1.6pt]}
+
+% Diagrams: one grid, one box height per row, solid arrows for flow and dashed
+% arrows for annotations.
+\tikzset{
+  dgm/.style={font=\scriptsize,>={Latex[length=2mm,width=1.4mm]}},
+  dnode/.style={draw=black,line width=0.5pt,fill=white,align=center,
+                font=\scriptsize,inner sep=3pt,minimum height=1.2cm,
+                execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  dfill/.style={dnode},
+  dmark/.style={dnode,fill=black!10},
+  dann/.style={draw=black!75,line width=0.4pt,densely dashed,fill=white,align=center,
+               font=\scriptsize,inner sep=3.5pt},
+  dflow/.style={->,line width=0.55pt,draw=black},
+  dlink/.style={->,densely dashed,line width=0.4pt,draw=black!75},
+  dbus/.style={line width=0.55pt,draw=black},
+  dnote/.style={font=\scriptsize\itshape,align=center,
+                execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  dlab/.style={font=\scriptsize,align=right},
+}
+
+% Plots.
+\pgfplotsset{
+  dissplot/.style={
+    width=13.0cm, height=5.6cm,
+    tick label style={font=\footnotesize},
+    label style={font=\footnotesize},
+    legend style={font=\footnotesize,draw=none,fill=none},
+    axis line style={draw=rulegrey},
+    grid style={draw=rulegrey!45}}}
+
+% Numbers of the dissertation's cross-references cited inside the diagrams.
+\makeatletter
+\input{labels.tex}
+\makeatother

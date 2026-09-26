@@ -1,0 +1,41 @@
+% Overview of the method
+\begin{tikzpicture}[dgm]
+\def\PA{2.72}                   % pitch of row A (cm)
+\def\PB{3.45}                   % pitch of row B (cm)
+\tikzset{a/.style={dnode,text width=2.12cm,minimum height=1.66cm},
+         b/.style={dnode,text width=2.86cm,minimum height=1.25cm}}
+
+% row A: generating and probing one trace
+\node[a] (q)   at (-2*\PA,0) {\textbf{Question}\\[1.5pt] one item of a benchmark};
+\node[a] (gen) at (-\PA,0)   {\textbf{Thinking}\\[1.5pt] chain of thought, up to the budget $B$};
+\node[a] (ckp) at (0,0)      {\textbf{Checkpoint}\\[1.5pt] 256-token mark or reflective transition};
+\node[a] (prb) at (\PA,0)    {\textbf{Probe}\\[1.5pt] cue appended; at most 24 greedy tokens};
+\node[a] (evd) at (2*\PA,0)  {\textbf{Evidence}\\[1.5pt] trial answer $\hat{y}_k$ and confidence $c_k$};
+\foreach \x/\y in {q/gen,gen/ckp,ckp/prb,prb/evd} \draw[dflow] (\x) -- (\y);
+
+% row B: the tiers, all reading the same evidence
+\node[b] (t1) at (-1.5*\PB,-2.80) {\textbf{FAST}\\[1.5pt] one signal, one threshold};
+\node[b,fill=black!10] (t2) at (-0.5*\PB,-2.80)
+  {\textbf{FUSION}\\[1.5pt] agreement gated by smoothed confidence};
+\node[b] (t3) at (0.5*\PB,-2.80) {\textbf{SELECTION}\\[1.5pt] certified choice from $\mathcal{C}$};
+\node[b] (t4) at (1.5*\PB,-2.80) {\textbf{JOINT}\\[1.5pt] tier choice and model routing};
+\coordinate (bus) at (0,-1.76);
+\draw[dbus] (evd.south) -- (evd.south |- bus);
+\draw[dbus] (bus -| t1.north) -- (bus -| evd.south);
+\foreach \n in {t1,t2,t3,t4} \draw[dflow] (bus -| \n.north) -- (\n.north);
+
+% row C: the decision taken by the active tier
+\node[dnode,text width=3.10cm,minimum height=0.95cm] (dec) at (0,-4.82)
+  {\textbf{Halt at checkpoint $k$?}\\[1.5pt] decided by the active tier};
+\node[dnode,text width=2.60cm,minimum height=0.95cm] (ans) at (4.55,-4.82)
+  {\textbf{Answer $\hat{y}_k$}\\[1.5pt] cost by Equation~\eqref{eq:cost}};
+\coordinate (col) at (0,-3.88);
+\foreach \n in {t1,t2,t3,t4} \draw[dbus] (\n.south) -- (col -| \n.south);
+\draw[dbus] (col -| t1.south) -- (col -| t4.south);
+\draw[dflow] (col) -- (dec.north);
+\draw[dflow] (dec.east) -- node[above,font=\scriptsize] {yes} (ans.west);
+
+% continue: generation resumes until the next checkpoint
+\draw[dflow] (dec.west) -- node[above,font=\scriptsize,pos=0.35] {no: continue}
+  (-7.02,-4.82) -- (-7.02,-1.22) -- (gen.south |- 0,-1.22) -- (gen.south);
+\end{tikzpicture}

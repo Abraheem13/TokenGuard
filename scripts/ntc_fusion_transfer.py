@@ -1,23 +1,20 @@
 #!/usr/bin/env python
-"""Does the fusion tier's parameter transfer across domains?  (no GPU)
+"""Does the fusion tier's parameter transfer across domains?
 
-SHIFT_CERTIFICATE.md tests the selection tier's certificate under transfer. The
-dissertation's deployment rule recommends the fusion tier where per-domain
-calibration is unavailable, which requires its two parameters (m, theta) to be
-set without data from the target domain. This script tests that directly, on the
-same 12 domains, the same five calibration/evaluation splits and the same
-evaluation items as ntc_shift_certificate.py, over the fusion grid of the
-candidate library (m in {2, 3}, theta in {0.7, 0.9, 0.95}):
+Where per-domain calibration is unavailable, the fusion tier's parameters
+(m, theta) must be set without data from the target domain. On the same twelve
+domains, calibration splits and evaluation items as ntc_shift_certificate.py,
+and over the fusion grid of the candidate library (m in {2, 3},
+theta in {0.7, 0.9, 0.95}), this compares:
 
-  FIXED          each grid point deployed everywhere with no calibration at all
-  TRANSFERRED    the cheapest grid point whose calibration accuracy change is
-                 >= -eps on ANOTHER domain's warm-up split, deployed on the target
-                 (the way a fixed signal would be tuned once and reused)
-  LODO           the cheapest grid point whose calibration accuracy change is
-                 >= -eps on EVERY other domain's warm-up split
-  LIBRARY LODO   the same leave-one-domain-out rule over the whole candidate
-                 library |C| = 19 (no confidence bound), for comparison with the
-                 Bonferroni-corrected domain-robust rule of SHIFT_CERTIFICATE.md
+  fixed          each grid point deployed everywhere, with no calibration
+  transferred    the cheapest grid point whose calibration accuracy change is
+                 >= -eps on another domain, deployed on the target
+  lodo           the cheapest grid point whose calibration accuracy change is
+                 >= -eps on every other domain
+  library lodo   the same leave-one-domain-out rule over the whole candidate
+                 library (|C| = 19) without a confidence bound, for comparison
+                 with the Bonferroni-corrected rule of SHIFT_CERTIFICATE.md
 
 Writes experiments/ntc/FUSION_TRANSFER.md.
 
@@ -26,19 +23,17 @@ Writes experiments/ntc/FUSION_TRANSFER.md.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
-import sys
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 
-_here = Path(__file__).resolve().parent
-spec = importlib.util.spec_from_file_location("shift", _here / "ntc_shift_certificate.py")
-SH = importlib.util.module_from_spec(spec)
-sys.modules["shift"] = SH
-spec.loader.exec_module(SH)
-OC, S, NTC, DOMAINS = SH.OC, SH.S, SH.NTC, SH.DOMAINS
+import ntc_operating_curves as OC
+import ntc_shift_certificate as SH
+import ntc_w1_stats as S
+
+NTC, DOMAINS = SH.NTC, SH.DOMAINS
 
 
 def main() -> int:
@@ -69,11 +64,9 @@ def main() -> int:
                 ok, tok = S.per_item(ev, bench, S.FAMILIES[fam][0], kw)
                 dep.append((100 * (float(ok.mean()) - van_acc),
                             100 * (1 - float(tok.mean()) / van_tok)))
-            libst = SH.candidate_stats(warm, bench, lib)
             cache[name] = dict(st=SH.candidate_stats(warm, bench, cands), dep=dep,
-                               libst=libst, ev=ev, bench=bench,
-                               van_tok=van_tok, van_acc=van_acc)
-            del d, traces
+                               libst=SH.candidate_stats(warm, bench, lib), ev=ev,
+                               bench=bench, van_tok=van_tok, van_acc=van_acc)
         for tgt, _ in DOMAINS:
             T = cache[tgt]
             for i in range(len(cands)):
@@ -105,13 +98,15 @@ def main() -> int:
         print(f"  split {s} done", flush=True)
 
     def summ(v):
-        d = np.array([x[1] for x in v]); c = np.array([x[2] for x in v])
+        d = np.array([x[1] for x in v])
+        c = np.array([x[2] for x in v])
         return d.mean(), d.min(), float(np.mean(d >= -1.0)), c.mean(), d, c
 
     md = ["# Does the fusion tier's parameter transfer across domains?", "",
-          f"{len(DOMAINS)} domains x {a.splits} splits, same evaluation items as "
-          "SHIFT_CERTIFICATE.md. Deficit in accuracy points against full generation on "
-          "the evaluation split; cut in % of full-generation tokens (KV-fork).", "",
+          f"{len(DOMAINS)} domains x {a.splits} splits, the same evaluation items as "
+          "SHIFT_CERTIFICATE.md. Deficit: accuracy change against full generation on the "
+          "evaluation split, in points. Cut: saving in % of full-generation tokens "
+          "(KV-fork).", "",
           "## Fixed parameters (no calibration)", "",
           "| m | theta | mean deficit | worst cell | within 1 pt | mean cut |",
           "|---|---|---|---|---|---|"]
@@ -128,12 +123,10 @@ def main() -> int:
             mu, wo, w1, cu, d, _ = summ(rows[e][r])
             we = float(np.mean(d >= -100 * e))
             md.append(f"| {lab} | {mu:+.2f} | {wo:+.1f} | {w1:.0%} | {we:.0%} | {cu:.1f}% |")
-        from collections import Counter
         pk = Counter(f"m={cands[x[3]][1]['m']},theta={cands[x[3]][1]['theta']}"
                      for x in rows[e]["lodo"])
         md += ["", f"LODO picks: `{dict(pk)}`",
                "", f"library LODO picks: `{dict(Counter(libpk[e]).most_common(5))}`"]
-        # per-target worst for the transferred rule
         md += ["", "Per-target worst transferred cell: " + ", ".join(
             f"{t} {min(x[1] for x in rows[e]['transfer'] if x[0] == t):+.1f}"
             for t, _ in DOMAINS)]

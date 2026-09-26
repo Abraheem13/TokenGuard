@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-"""Statistical rigor for the NTC results — no GPU needed.
+"""Halting rules, replay evaluation and risk-controlled calibration.
 
-For a saved probe file:
-  1. MULTI-SEED calibration splits (default 10): re-draw the warm-up/eval split,
-     re-calibrate every method (incl. NTC-full adaptive) on warm-up, evaluate
-     held-out. Report mean ± std of accuracy / tokens / cut% across seeds.
-  2. McNEMAR exact test (seed-0 split): NTC-full vs each calibrated baseline on
-     paired per-item correctness.
-  3. PAIRED BOOTSTRAP (10k) on per-item token usage: NTC-full vs vanilla — 95%
-     CI on the mean token saving.
+This module is the shared library of the analysis scripts. It defines every
+halting rule as a causal function of one probe stream, the overhead-inclusive
+replay that scores a rule on a set of traces, and the selection tier's
+calibration: a Bonferroni-corrected lower confidence bound over the whole
+candidate library, with a null action that never halts.
 
-Usage:
+Run as a script, it reports for one probe file the calibrated results over
+repeated calibration/evaluation splits, exact McNemar tests on the first split
+and a paired bootstrap interval for the token saving:
+
     python scripts/ntc_w1_stats.py --probes experiments/ntc/w1_math500_Qwen3-4B.json
 """
 
@@ -19,20 +19,20 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
+from collections import Counter, deque
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-import os as _os
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from tokenguard.reasoning.datasets import is_correct
 
 
-# ---------------- policies (self-contained copies) ----------------
+# ------------------------------------------------------------ halting rules
 def deer_policy(probes, lam=0.95):
+    """Confidence threshold: halt at the first probe whose confidence >= lam."""
     for k, p in enumerate(probes):
         if p["confidence"] >= lam:
             return k
@@ -40,6 +40,7 @@ def deer_policy(probes, lam=0.95):
 
 
 def eat_policy(probes, delta=1e-3, alpha=0.2, warmup=3):
+    """Entropy stability: halt once the EMA variance of first-token entropy < delta."""
     ema = emv = None
     for k, p in enumerate(probes):
         h = p["first_entropy"]
@@ -55,6 +56,7 @@ def eat_policy(probes, delta=1e-3, alpha=0.2, warmup=3):
 
 
 def ntc_conf_policy(probes, theta=0.9, eta=0.6, patience=2):
+    """Smoothed confidence: halt after `patience` probes with EMA confidence >= theta."""
     S, above = None, 0
     for k, p in enumerate(probes):
         c = p["confidence"]
@@ -66,6 +68,7 @@ def ntc_conf_policy(probes, theta=0.9, eta=0.6, patience=2):
 
 
 def agree_policy(probes, m=2, bm="math500"):
+    """Answer agreement: halt when m consecutive trial answers are equivalent."""
     run = 1
     for k in range(1, len(probes)):
         same = (probes[k]["answer"] and
@@ -77,6 +80,7 @@ def agree_policy(probes, m=2, bm="math500"):
 
 
 def ntc_v2_policy(probes, m=2, theta=0.5, eta=0.6, bm="math500"):
+    """Fusion tier: halt when m answers agree and EMA confidence >= theta."""
     S, run = None, 1
     for k in range(len(probes)):
         c = probes[k]["confidence"]
@@ -90,14 +94,12 @@ def ntc_v2_policy(probes, m=2, theta=0.5, eta=0.6, bm="math500"):
     return None
 
 
-
-
-# ---------------- v2 additions: faithful-signal baselines ----------------
 def enrich_probes_with_nll(traces):
-    """Attach per-checkpoint segment mean-NLL (from the thinking pass) to each
-    probe. ckpt_tokens indexes are computed via re-encoding the text prefix
-    with the same tokenizer; alignment is exact up to +/- a few join tokens,
-    negligible over ~256-token segments. Returns True if any trace has NLL."""
+    """Attach to each probe the mean token NLL of the thinking segment it closes.
+
+    Segment boundaries are the probes' `ckpt_tokens` offsets into the per-token
+    NLL of the thinking pass. Returns True if any trace carries token NLL.
+    """
     any_nll = False
     for t in traces:
         nll = t.get("token_nll") or []
@@ -114,12 +116,12 @@ def enrich_probes_with_nll(traces):
 
 
 def mur_policy(probes, gamma=0.9, beta=0.9):
-    """MUR's momentum-uncertainty signal (arXiv:2507.14958) adapted to the
-    halting setting under identical answer-forcing: momentary step NLL m_k vs
-    momentum M_k = beta*M + (1-beta)*m. MUR itself SCALES per-step compute
-    when m_k exceeds gamma-scaled momentum; as a halting criterion we stop at
-    the first checkpoint whose momentary uncertainty falls to <= gamma * M
-    (reasoning has stabilised). Requires seg_nll (v2 traces)."""
+    """Uncertainty momentum (MUR, arXiv:2507.14958) as a halting rule.
+
+    Tracks momentum M_k = beta * M + (1 - beta) * m_k of the segment NLL m_k and
+    halts at the first checkpoint whose momentary uncertainty m_k <= gamma * M.
+    Requires `seg_nll` (see enrich_probes_with_nll).
+    """
     M = None
     for k, p in enumerate(probes):
         m = p.get("seg_nll")
@@ -136,17 +138,16 @@ def mur_policy(probes, gamma=0.9, beta=0.9):
 
 def refrain_swucb_stream(traces, bench, arms=(0.85, 0.90, 0.95, 0.99),
                          window=50, ucb_c=0.5, mu=0.2):
-    """REFRAIN's online mechanism (arXiv:2510.10103), faithful-in-spirit:
-    a sliding-window UCB bandit adapts the confidence-halting threshold over
-    the query STREAM (arms = lambda grid over DEER confidence); reward =
-    1[correct] - mu * (tokens / stream-mean vanilla tokens). Evaluated in
-    stream order on the held-out split. Returns (ok, tok) arrays."""
-    import collections
+    """Bandit threshold (REFRAIN, arXiv:2510.10103) over a query stream.
+
+    A sliding-window UCB bandit chooses the confidence threshold for each query
+    in stream order; the reward is 1[correct] - mu * tokens / mean full tokens.
+    Returns per-item (correct, tokens) arrays.
+    """
     van_tok = float(np.mean([t["n_total_tokens"] for t in traces])) or 1.0
-    hist = collections.deque(maxlen=window)  # (arm_idx, reward)
+    hist = deque(maxlen=window)
     ok_arr, tok_arr = [], []
     for step, t in enumerate(traces, start=1):
-        # SW-UCB arm choice
         counts = [1e-9] * len(arms)
         sums = [0.0] * len(arms)
         for a, r in hist:
@@ -156,44 +157,46 @@ def refrain_swucb_stream(traces, bench, arms=(0.85, 0.90, 0.95, 0.99),
                    math.log(max(2, min(step, window))) / counts[a])
                for a in range(len(arms))]
         a = int(np.argmax(ucb))
-        lam = arms[a]
-        k = deer_policy(t["probes"], lam=lam) if t["probes"] else None
+        k = deer_policy(t["probes"], lam=arms[a]) if t["probes"] else None
         if k is None:
-            ok = bool(t["natural_correct"]); tok = t["n_total_tokens"]
+            ok = bool(t["natural_correct"])
+            tok = t["n_total_tokens"]
         else:
             p = t["probes"][k]
             ok = is_correct(p["answer"], t["gold"], bench)
             tok = p["ckpt_tokens"] + p["n_probe_tokens"]
         hist.append((a, float(ok) - mu * tok / van_tok))
-        ok_arr.append(ok); tok_arr.append(tok)
+        ok_arr.append(ok)
+        tok_arr.append(tok)
     return np.array(ok_arr), np.array(tok_arr, dtype=float)
 
+
 def never_halt_policy(probes, **kw):
-    """Null action: never halt (spend the full thinking budget)."""
+    """Null action: never halt early."""
     return None
 
 
+# The candidate library of the selection tier (|C| = 19; 22 with MUR-mom,
+# which is added per file when the probe stream carries token NLL).
 FAMILIES = {
     "NEVER-HALT": (never_halt_policy, [{}]),
-    "DEER":     (deer_policy,     [{"lam": v} for v in (0.90, 0.95, 0.99)]),
-    "EAT":      (eat_policy,      [{"delta": v} for v in (1e-2, 1e-3, 1e-4)]),
+    "DEER": (deer_policy, [{"lam": v} for v in (0.90, 0.95, 0.99)]),
+    "EAT": (eat_policy, [{"delta": v} for v in (1e-2, 1e-3, 1e-4)]),
     "NTC-conf": (ntc_conf_policy, [{"theta": v} for v in (0.85, 0.90, 0.95, 0.99)]),
-    "AGREE":    (agree_policy,    [{"m": v} for v in (2, 3)]),
+    "AGREE": (agree_policy, [{"m": v} for v in (2, 3)]),
     "NTC-v2": (ntc_v2_policy,
-               [{"m": _m, "theta": _t} for _m in (2, 3)
-                for _t in (0.7, 0.9, 0.95)]),
+               [{"m": _m, "theta": _t} for _m in (2, 3) for _t in (0.7, 0.9, 0.95)]),
 }
 
 
-# ---------------- evaluation ----------------
+# -------------------------------------------------------------- evaluation
 def per_item(traces, bench, fn, kw):
-    """Return per-item (correct, tokens) arrays for a policy."""
+    """Per-item (correct, tokens) of a rule; tokens include every probe paid."""
     ok, tok = [], []
     for t in traces:
         probes = t["probes"]
         kk = fn(probes, **({**kw, "bm": bench} if "bm" in fn.__code__.co_varnames else kw)) \
-             if probes else None
-        # OVERHEAD_INCLUSIVE: all probes paid up to (and including) the halt
+            if probes else None
         if kk is None:
             ok.append(bool(t["natural_correct"]))
             tok.append(t["n_total_tokens"]
@@ -207,8 +210,7 @@ def per_item(traces, bench, fn, kw):
 
 
 def _norm_quantile(q):
-    """Inverse standard-normal CDF (Acklam rational approximation)."""
-    import math
+    """Inverse standard-normal CDF (Acklam's rational approximation)."""
     if q <= 0.0:
         return -8.0
     if q >= 1.0:
@@ -237,7 +239,7 @@ def _norm_quantile(q):
 
 
 def _t_quantile(q, df):
-    """Student-t quantile via Cornish-Fisher expansion of the normal quantile."""
+    """Student-t quantile by the Cornish-Fisher expansion of the normal quantile."""
     z = _norm_quantile(q)
     if df is None or df <= 2:
         return z * 2.0
@@ -247,17 +249,18 @@ def _t_quantile(q, df):
 
 
 def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
-    """Slow-tier selection via REPEATED paired K-fold CV (evidence-tested on
-    the real MATH-500/GPQA probe data).
+    """Choose a rule on calibration items under an accuracy tolerance eps.
 
-    For each candidate (family, param): pool the paired per-fold accuracy
-    differences d = acc_candidate(fold) - acc_vanilla(fold) over `reps`
-    shuffled fold assignments (3 x 5-fold = 15 paired diffs), cancelling
-    shared item-difficulty variance and fold-assignment noise. Feasibility:
-        mean(d) >= -eps      (eps = accuracy SLO, default 2.5 points)
-    Among feasible candidates take minimum mean tokens; if none feasible,
-    the maximum mean(d) candidate. The same rule yields per-family picks and
-    the global NTC-full pick.
+    For every candidate (family, parameter) the accuracy change against full
+    generation is estimated by repeated paired K-fold cross-validation (3 x 5
+    folds), and its standard error from the per-item paired differences. A
+    candidate is admissible when its one-sided lower confidence bound,
+    Bonferroni-corrected over the whole library, is >= -eps; the cheapest
+    admissible candidate is chosen, or the candidate with the highest bound
+    if none is admissible. Set TG_SELECT=point to rank by the point estimate
+    instead of the bound, and TG_DELTA to change the risk level (default 0.1).
+
+    Returns the per-family choices and the library-wide choice (family, kw).
     """
     n = len(warm)
     k_folds = max(2, min(k_folds, n))
@@ -265,7 +268,6 @@ def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
 
     picks, gcands = {}, []
     for fam, (fn, grid) in FAMILIES.items():
-        cands = []
         for kw in grid:
             ok, tok = per_item(warm, bench, fn, kw)
             ok = ok.astype(float)
@@ -276,23 +278,16 @@ def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
                 folds = [f for f in (idx[i::k_folds] for i in range(k_folds))
                          if len(f)]
                 ds += [float(ok[f].mean() - van_all[f].mean()) for f in folds]
-            md = float(np.mean(ds))
-            # paired per-item difference -> honest finite-sample SE
-            _dlt = ok - van_all
-            _se = float(np.std(_dlt, ddof=1) / np.sqrt(max(1, len(_dlt)))) \
-                if len(_dlt) > 1 else 1.0
-            cands.append({"kw": kw, "md": md, "se": _se,
-                          "tok": float(tok.mean())})
-            gcands.append({"fam": fam, **cands[-1]})
-        picks[fam] = None  # filled after the global Bonferroni correction
-    # LCB_SELECT: Bonferroni-corrected one-sided lower confidence bound over
-    # the whole candidate library (see module docstring).
-    _mode = _os.environ.get("TG_SELECT", "lcb").lower()
-    _delta = float(_os.environ.get("TG_DELTA", "0.1"))
-    _m = max(1, len(gcands))
-    _z = _t_quantile(1.0 - _delta / _m, max(2, n - 1))
+            dlt = ok - van_all
+            se = float(np.std(dlt, ddof=1) / np.sqrt(max(1, len(dlt)))) \
+                if len(dlt) > 1 else 1.0
+            gcands.append({"fam": fam, "kw": kw, "md": float(np.mean(ds)), "se": se,
+                           "tok": float(tok.mean())})
+    mode = os.environ.get("TG_SELECT", "lcb").lower()
+    delta = float(os.environ.get("TG_DELTA", "0.1"))
+    z = _t_quantile(1.0 - delta / max(1, len(gcands)), max(2, n - 1))
     for c in gcands:
-        c["lcb"] = c["md"] - _z * c["se"] if _mode == "lcb" else c["md"]
+        c["lcb"] = c["md"] - z * c["se"] if mode == "lcb" else c["md"]
     for fam in FAMILIES:
         cands = [c for c in gcands if c["fam"] == fam]
         feas = [c for c in cands if c["lcb"] >= -eps]
@@ -305,9 +300,9 @@ def calibrate(warm, bench, k_folds=5, eps=0.025, reps=3):
 
 
 def mcnemar_exact(a_ok, b_ok):
-    """Exact two-sided McNemar on paired correctness arrays."""
-    b = int(np.sum(a_ok & ~b_ok))   # NTC right, baseline wrong
-    c = int(np.sum(~a_ok & b_ok))   # NTC wrong, baseline right
+    """Exact two-sided McNemar test on paired correctness arrays."""
+    b = int(np.sum(a_ok & ~b_ok))
+    c = int(np.sum(~a_ok & b_ok))
     n = b + c
     if n == 0:
         return b, c, 1.0
@@ -322,7 +317,7 @@ def main() -> int:
     ap.add_argument("--n-seeds", type=int, default=10)
     ap.add_argument("--n-boot", type=int, default=10000)
     ap.add_argument("--cv-eps", type=float, nargs="+", default=[0.01, 0.025],
-                    help="accuracy-SLO tolerances for NTC-full (strict, relaxed)")
+                    help="accuracy tolerances of the selection tier")
     args = ap.parse_args()
 
     d = json.loads(Path(args.probes).read_text())
@@ -331,14 +326,8 @@ def main() -> int:
     n_warm = int(n * args.warmup_frac)
 
     if enrich_probes_with_nll(traces):
-        FAMILIES["MUR-mom"] = (mur_policy,
-                               [{"gamma": g} for g in (0.7, 0.8, 0.9)])
-        print("[v2] token NLL found -> faithful MUR-momentum family enabled")
-    else:
-        print("[v2] no token NLL in this probe file -> MUR-mom skipped "
-              "(regenerate traces with harness v2 to enable)")
+        FAMILIES["MUR-mom"] = (mur_policy, [{"gamma": g} for g in (0.7, 0.8, 0.9)])
 
-    # ---------- 1) multi-seed splits ----------
     full_names = [f"NTC-full(e={e})" for e in args.cv_eps]
     agg = {fam: {"acc": [], "cut": []}
            for fam in list(FAMILIES) + full_names + ["vanilla", "REFRAIN-SWUCB"]}
@@ -350,7 +339,8 @@ def main() -> int:
         ev = [traces[i] for i in idx[n_warm:]]
         van_ok = np.array([t["natural_correct"] for t in ev])
         van_tok = np.array([t["n_total_tokens"] for t in ev], dtype=float)
-        agg["vanilla"]["acc"].append(van_ok.mean()); agg["vanilla"]["cut"].append(0.0)
+        agg["vanilla"]["acc"].append(van_ok.mean())
+        agg["vanilla"]["cut"].append(0.0)
         picks, _ = calibrate(warm, bench, eps=args.cv_eps[0])
         for fam, kw in picks.items():
             ok, tok = per_item(ev, bench, FAMILIES[fam][0], kw)
@@ -366,21 +356,19 @@ def main() -> int:
             agg[nm]["acc"].append(gok.mean())
             agg[nm]["cut"].append(100 * (1 - gtok.mean() / van_tok.mean()))
 
-    print(f"=== multi-seed calibrated results — {d['model']} / {bench} "
-          f"({args.n_seeds} splits, eval n={n - n_warm}) ===")
-    print(f"{'method':<12}{'acc mean±std':>16}{'cut% mean±std':>18}")
-    fam_order = ["vanilla", "DEER", "EAT", "NTC-conf", "AGREE", "NTC-v2"]
+    print(f"=== calibrated results: {d['model']} / {bench} "
+          f"({args.n_seeds} splits, evaluation n={n - n_warm}) ===")
+    print(f"{'method':<16}{'acc mean±sd':>14}{'cut% mean±sd':>16}")
+    order = ["vanilla", "DEER", "EAT", "NTC-conf", "AGREE", "NTC-v2"]
     if "MUR-mom" in FAMILIES:
-        fam_order.append("MUR-mom")
-    fam_order.append("REFRAIN-SWUCB")
-    for k in fam_order + full_names:
+        order.append("MUR-mom")
+    order.append("REFRAIN-SWUCB")
+    for k in order + full_names:
         a, c = np.array(agg[k]["acc"]), np.array(agg[k]["cut"])
         print(f"{k:<16}{a.mean():>8.3f} ±{a.std():>5.3f}{c.mean():>11.1f} ±{c.std():>5.1f}")
-    from collections import Counter
     for nm in full_names:
-        print(f"{nm} picks: {dict(Counter(ntc_full_picks[nm]))}")
+        print(f"{nm} choices: {dict(Counter(ntc_full_picks[nm]))}")
 
-    # ---------- 2) McNemar + 3) bootstrap on seed-0 split ----------
     rng = np.random.default_rng(0)
     idx = rng.permutation(n)
     warm = [traces[i] for i in idx[:n_warm]]

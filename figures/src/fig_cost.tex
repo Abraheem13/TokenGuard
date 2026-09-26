@@ -1,0 +1,19 @@
+% What one probe costs in three serving regimes
+\begin{tikzpicture}[dgm]
+\def\B{4.30}\def\G{0.48}
+\node[dnode,text width=4.05cm,minimum height=2.05cm,anchor=north west] (a) at (0,0)
+  {\dtitle{KV-fork} The engine branches the key and value cache and resumes; nothing is
+   re-read.\\[4pt] $r_k = 0$};
+\node[dnode,text width=4.05cm,minimum height=2.05cm,anchor=north west] (b)
+  at ({\B+\G},0) {\dtitle{Prefix cache} The cached prefix is reused and only the cue is
+   prefilled again.\\[4pt] $r_k = 12$};
+\node[dmark,text width=4.05cm,minimum height=2.05cm,anchor=north west] (c)
+  at ({2*(\B+\G)},0) {\dtitle{Black-box API} The whole prefix is resubmitted with every
+   probe.\\[4pt] $r_k = t_k + 12$};
+\foreach \a/\b in {a/b,b/c} \draw[dflow] (\a.east) -- (\b.west);
+\node[dnote,text width=13.6cm,anchor=north west] at (0,-2.45)
+  {Only the re-prefill term changes. On GSM8K with Qwen3-8B the same smoothed-confidence
+   policy is roughly cost-neutral in the first regime and wastes 82.3\% of the budget in
+   the third (Table~\ref{tab:regimes}), so an overhead figure without its regime is not
+   comparable.};
+\end{tikzpicture}

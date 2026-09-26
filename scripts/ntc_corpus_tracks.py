@@ -1,20 +1,17 @@
 #!/usr/bin/env python
-"""Corpus accounting by experimental track.  (no GPU)
+"""Corpus accounting by experimental track.
 
 Every probe file belongs to exactly one track:
 
-  primary       the generation-seed replicates that carry the per-setting and
-                aggregate results (`w1_*` and `w1sh_*`, excluding the
-                unshuffled `w1_gpqa16k_*` runs, which the shuffled `w1sh_*`
-                files supersede)
-  head-to-head  the matched runs against DEER's own code (`h2h*`)
+  primary       generation-seed replicates behind the per-setting and aggregate
+                results (`w1_*`, and `w1sh_*` for GPQA-Diamond with shuffled options)
+  head-to-head  the matched comparison with DEER (`h2h2_*`)
   density       the checkpoint-density sweep (`dens*`); its 1x level is the
-                head-to-head MATH-500 file and is counted there
+                head-to-head MATH-500 run and is counted there
 
-For each track it reports, per benchmark: the size of the official test split,
+For each track and benchmark it reports the size of the official test split,
 the items sampled, the thinking budget, the reasoning traces, the graded trial
-answers, the mean tokens per trace and the range of truncation rates. These are
-the numbers of Tables 4.3 and 4.4 of the dissertation.
+answers, the mean tokens per trace and the range of truncation rates over files.
 
 Writes experiments/ntc/CORPUS_TRACKS.md.
 
@@ -28,23 +25,20 @@ from pathlib import Path
 
 import numpy as np
 
-NTC = Path("experiments/ntc")
+NTC = Path(__file__).resolve().parents[1] / "experiments" / "ntc"
 POOL = {"gsm8k": 1319, "math500": 500, "gpqa_diamond": 198,
         "aime24": 30, "aime25": 30, "mmlu_pro": 12032}
 ORDER = ["gsm8k", "math500", "gpqa_diamond", "mmlu_pro", "aime24", "aime25"]
 LABEL = {"gsm8k": "GSM8K", "math500": "MATH-500", "gpqa_diamond": "GPQA-Diamond",
          "mmlu_pro": "MMLU-Pro", "aime24": "AIME-2024", "aime25": "AIME-2025"}
+TRACKS = (("primary", ("w1_", "w1sh_")), ("head-to-head", ("h2h2_",)),
+          ("density", ("dens",)))
 
 
 def track(name: str) -> str | None:
-    if name.startswith("h2h"):
-        return "head-to-head"
-    if name.startswith("dens"):
-        return "density"
-    if name.startswith("w1_gpqa16k"):
-        return None                      # superseded by the shuffled runs
-    if name.startswith(("w1_", "w1sh_")):
-        return "primary"
+    for label, prefixes in TRACKS:
+        if name.startswith(prefixes):
+            return label
     return None
 
 
@@ -53,16 +47,11 @@ def main() -> int:
         "files": 0, "items": set(), "traces": 0, "probes": 0,
         "tokens": 0.0, "trunc": [], "budget": set(), "qids": set()}))
     for f in sorted(NTC.glob("*.json")):
-        if f.stem.endswith("_policies") or f.name == "grader_cache.json":
-            continue                      # analysis outputs, not probe streams
         tr = track(f.name)
         if tr is None:
             continue
-        try:
-            d = json.loads(f.read_text())
-            traces, bench = d["traces"], d["benchmark"]
-        except Exception:
-            continue
+        d = json.loads(f.read_text())
+        traces, bench = d["traces"], d["benchmark"]
         s = per[tr][bench]
         s["files"] += 1
         s["items"].add(len(traces))
@@ -75,12 +64,12 @@ def main() -> int:
         s["qids"].update(f"{bench}:{t.get('qid', i)}" for i, t in enumerate(traces))
 
     md = ["# Corpus by experimental track", "",
-          "Track assignment: `primary` = `w1_*` and `w1sh_*` (the unshuffled "
-          "`w1_gpqa16k_*` runs are superseded by `w1sh_*` and excluded); "
-          "`head-to-head` = `h2h*`; `density` = `dens*`. Tokens per trace is the "
-          "mean of `n_total_tokens`; truncation is the share of traces whose "
-          "generation did not stop of its own accord.", ""]
-    for tr in ("primary", "head-to-head", "density"):
+          "Tracks: `primary` = `w1_*` and `w1sh_*` (GPQA-Diamond with shuffled options); "
+          "`head-to-head` = `h2h2_*`; `density` = `dens*`. `items` is the number of "
+          "questions per file; tokens per trace is the mean of `n_total_tokens`; "
+          "truncation is the share of a file's traces that reach the thinking budget, as "
+          "a range over files.", ""]
+    for tr, _ in TRACKS:
         if tr not in per:
             continue
         md += [f"## {tr}", "",
@@ -112,7 +101,7 @@ def main() -> int:
     out = NTC / "CORPUS_TRACKS.md"
     out.write_text("\n".join(md) + "\n")
     print("\n".join(md))
-    print(f"\ntable: {out}")
+    print(f"table: {out}")
     return 0
 
 

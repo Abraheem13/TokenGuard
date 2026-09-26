@@ -1,0 +1,29 @@
+% How the certificate narrows the candidate library
+\begin{tikzpicture}[dgm]
+\def\B{2.52}\def\G{0.40}
+\node[dnode,text width=2.27cm,minimum height=1.66cm,anchor=north west] (lib) at (0,0)
+  {\dtitle{Library $\mathcal{C}$} 19 rules, including the null action $\pi_0$};
+\node[dnode,text width=2.27cm,minimum height=1.66cm,anchor=north west] (est)
+  at ({\B+\G},0) {\dtitle{Paired estimates} $\bar{\Delta}(\pi)$ and
+   $\mathrm{se}(\pi)$ on $n \approx 80$ calibration items};
+\node[dnode,text width=2.27cm,minimum height=1.66cm,anchor=north west] (lcb)
+  at ({2*(\B+\G)},0) {\dtitle{Corrected bound} \mbox{$L(\pi) = \bar{\Delta}(\pi)$}\\
+   \mbox{$-\,t_{1-\alpha/|\mathcal{C}|}\,\mathrm{se}(\pi)$}};
+\node[dnode,text width=2.27cm,minimum height=1.66cm,anchor=north west] (adm)
+  at ({3*(\B+\G)},0) {\dtitle{Admitted set} every $\pi$ with $L(\pi) \ge -\varepsilon$};
+\node[dmark,text width=2.27cm,minimum height=1.66cm,anchor=north west] (pick)
+  at ({4*(\B+\G)},0) {\dtitle{Deployed rule} $\hat{\pi}_d$, the cheapest admitted rule};
+\foreach \a/\b in {lib/est,est/lcb,lcb/adm,adm/pick} \draw[dflow] (\a.east) -- (\b.west);
+
+\node[dann,text width=5.4cm,anchor=north west] (n1) at (0.30,-2.15)
+  {selecting the best of 19 estimates is optimistic, so each interval is widened by the
+   Bonferroni factor at \mbox{$\alpha=0.10$}};
+\node[dann,text width=5.4cm,anchor=north west] (n2) at (7.90,-2.15)
+  {the set is never empty, because \mbox{$L(\pi_0)=0$}; the certificate is valid while
+   calibration and deployment items are exchangeable};
+\draw[dlink] (n1.north) -- (n1.north |- lcb.south);
+\draw[dlink] (n2.north) -- (n2.north |- adm.south);
+\node[dnote,text width=13.5cm,anchor=north west] at (0,-3.55)
+  {A distribution-free bound would be far wider at this sample size: at \mbox{$n=80$} a
+   Hoeffding interval admits nothing but the null action (Section~\ref{sec:cert}).};
+\end{tikzpicture}

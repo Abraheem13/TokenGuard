@@ -1,1 +1,1 @@
-"""Reasoning benchmarks: GSM8K, MATH-500, GPQA-Diamond loaders + scorers."""
+"""Benchmark loaders, answer extraction and the answer grader."""

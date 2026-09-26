@@ -1,4 +1,4 @@
-# Generation-seed aggregate — math500_Qwen3-8B (3 seeds x 10 splits)
+# Generation-seed aggregate: math500_Qwen3-8B (3 seeds x 10 splits)
 
 | method | accuracy (mean ± std over gen seeds) | cut % |
 |---|---|---|

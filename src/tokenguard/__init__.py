@@ -1,7 +1,6 @@
-"""TokenGuard: a multi-timescale, online-learning LLM router.
+"""Risk-controlled early exit for reasoning language models.
 
-MSc AI dissertation project, Brunel University London.
-Author: Raja Abraheem Rashid.
+Probe-stream generation and the answer grader used by the analyses in scripts/.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"

@@ -1,72 +1,56 @@
 #!/usr/bin/env python
-"""Numbers reported in the MSc dissertation that no other script writes.
+"""Paired tests, probing overhead, gate diagnostic and DeepSeek significance.
 
-Two quantities are produced here so that every figure in the dissertation
-traces to a committed output:
+Four quantities reported in the dissertation that no other script writes:
 
-  (1) Paired significance of the fusion tier (NTC-v2) against every other
-      method on operational-region AUCC (b in {0.4, 0.5, 0.6}), using the
-      exact sign test and tie-corrected Wilcoxon statistic defined in
-      ntc_primary_stats.py. That script tests against NTC-full; the
-      dissertation's primary comparison is referenced to the fusion tier.
+  1. Paired tests against the fusion tier on operational-region AUCC
+     (b in {0.4, 0.5, 0.6}), with the exact sign test and the tie-corrected
+     Wilcoxon statistic of ntc_primary_stats.py (which tests against the
+     selection tier instead).
+  2. Probing overhead: the probe tokens paid by a controller that probes at every
+     checkpoint and never halts, as a share of full-generation tokens (KV-fork
+     convention of ntc_cost_regimes.py).
+  3. The fusion tier's confidence-gate diagnostic at theta = 0.5 and 0.9, on four
+     fixed probe files (ntc_v2_diagnostic.py).
+  4. First-split significance on the DeepSeek setting: exact McNemar tests and a
+     paired bootstrap of the token saving (ntc_w1_stats.py).
 
-  (2) Framework overhead: the probe tokens paid by a controller that probes at
-      every checkpoint and never halts, as a fraction of plain-generation
-      tokens, under the KV-fork convention of ntc_cost_regimes.py.
-
-  (3) The confidence-gate diagnostic of the fusion tier at a permissive and a
-      strict threshold, on four fixed probe files, via ntc_v2_diagnostic.py.
-
-  (4) Seed-0 significance on the DeepSeek setting (exact McNemar and paired
-      bootstrap of the token saving), via ntc_w1_stats.py.
-
-Canonical inputs are the primary-track probe files. The early 8k-budget GPQA
-run (w1_gpqa_diamond_Qwen3-4B.json) is excluded from (2) because its budget
-differs from the 16k canonical setting.
+Inputs are the primary-track probe files. Writes
+experiments/ntc/DISSERTATION_NUMBERS.md.
 
     python scripts/ntc_dissertation_numbers.py
 """
 from __future__ import annotations
 
-import glob
-import importlib.util
 import json
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 
-_here = Path(__file__).resolve().parent
-sys.path.insert(0, str(_here.parents[0] / "src"))
-sys.path.insert(0, str(_here))
-_spec = importlib.util.spec_from_file_location("ps", _here / "ntc_primary_stats.py")
-PS = importlib.util.module_from_spec(_spec)
-_argv, sys.argv = sys.argv, [sys.argv[0]]
-_spec.loader.exec_module(PS)
-sys.argv = _argv
-S = PS.S
+import ntc_primary_stats as PS
+import ntc_w1_stats as S
+from ntc_v2_diagnostic import gate_rows
 
-NTC = _here.parents[0] / "experiments" / "ntc"
+HERE = Path(__file__).resolve().parent
+NTC = HERE.parent / "experiments" / "ntc"
 REF = "NTC-v2 (fusion)"
 SPLITS = 5
+GATE_FILES = ["w1_math500_Qwen3-4B.json", "w1_gsm8k_Qwen3-8B.json",
+              "w1sh_gpqa_Qwen3-8B.json", "w1_mmlupro_Qwen3-4B_s42.json"]
 
 
-def probe_files(exclude_8k: bool = False) -> list[str]:
-    out = []
-    for f in sorted(glob.glob(str(NTC / "w1_*.json"))):
-        if f.endswith("_policies.json"):
-            continue
-        if exclude_8k and f.endswith("w1_gpqa_diamond_Qwen3-4B.json"):
-            continue
-        out.append(f)
-    return out
+def probe_files() -> list[Path]:
+    """The primary track: every w1_* and w1sh_* probe file."""
+    return sorted(list(NTC.glob("w1_*.json")) + list(NTC.glob("w1sh_*.json")))
 
 
 def op_aucc_per_setting() -> dict:
     groups = defaultdict(list)
     for pf in probe_files():
-        d = json.loads(Path(pf).read_text())
+        d = json.loads(pf.read_text())
         groups[PS.setting_key(pf, d)].append(d)
     res = {}
     for key, ds in sorted(groups.items()):
@@ -88,26 +72,26 @@ def op_aucc_per_setting() -> dict:
 
 def overhead_per_setting() -> dict:
     groups = defaultdict(list)
-    for pf in probe_files(exclude_8k=True):
-        d = json.loads(Path(pf).read_text())
+    for pf in probe_files():
+        d = json.loads(pf.read_text())
         groups[f"{d['benchmark']}/{d['model'].split('/')[-1]}"].append(d)
     res = {}
     for key, ds in sorted(groups.items()):
         tot, paid = [], []
         for d in ds:
             for t in d["traces"]:
-                dec = sum(p["n_probe_tokens"] for p in t["probes"])
                 tot.append(t["n_total_tokens"])
-                paid.append(t["n_total_tokens"] + dec)
+                paid.append(t["n_total_tokens"] + sum(p["n_probe_tokens"] for p in t["probes"]))
         res[key] = float(np.mean(paid) / np.mean(tot) - 1.0)
     return res
 
 
 def main() -> int:
     op = op_aucc_per_setting()
-    md = ["# Dissertation numbers not written by any other script", "",
-          f"Generated by `scripts/ntc_dissertation_numbers.py`. Deployable protocol, "
-          f"{SPLITS} random calibration/evaluation splits per generation-seed file.", "",
+    md = ["# Paired tests, probing overhead, gate diagnostic and DeepSeek significance", "",
+          "Generated by `scripts/ntc_dissertation_numbers.py` from the primary-track probe "
+          f"files. Deployable protocol, {SPLITS} random calibration/evaluation splits per "
+          "generation-seed file.", "",
           f"## Paired tests against the fusion tier ({REF}), operational-region AUCC", "",
           "| method | mean op-AUCC | s.d. | fusion wins | sign-test p | Wilcoxon z |",
           "|---|---|---|---|---|---|"]
@@ -116,7 +100,7 @@ def main() -> int:
     for m in methods:
         vals = [op[k][m] for k in sorted(op) if m in op[k]]
         if m == REF:
-            md.append(f"| {m} | {np.mean(vals):.3f} | {np.std(vals):.3f} | — | — | — |")
+            md.append(f"| {m} | {np.mean(vals):.3f} | {np.std(vals):.3f} | n/a | n/a | n/a |")
             continue
         d = [op[k][REF] - op[k][m] for k in sorted(op) if m in op[k]]
         p, pos, n = PS.sign_test(d)
@@ -128,39 +112,32 @@ def main() -> int:
     for k in sorted(op):
         md.append(f"| {k} | " + " | ".join(f"{op[k].get(m, float('nan')):.3f}"
                                             for m in methods) + " |")
+
     ov = overhead_per_setting()
-    canon = [k for k in ov if "DeepSeek" not in k]
+    qwen = [k for k in ov if "DeepSeek" not in k]
     md += ["", "## Framework overhead (probe at every checkpoint, never halt; KV-fork)", "",
            "| setting | overhead |", "|---|---|"]
     md += [f"| {k} | {100 * ov[k]:.2f}% |" for k in sorted(ov)]
-    md += ["", f"Mean over the {len(canon)} Qwen3 settings: "
-               f"{100 * np.mean([ov[k] for k in canon]):.2f}%.", ""]
-    import subprocess
-    import tempfile
-    diag = ["w1_math500_Qwen3-4B.json", "w1_gsm8k_Qwen3-8B.json",
-            "w1_gpqa16k_Qwen3-8B_s42.json", "w1_mmlupro_Qwen3-4B_s42.json"]
+    md += ["", f"Mean over the {len(qwen)} Qwen3 settings: "
+               f"{100 * np.mean([ov[k] for k in qwen]):.2f}%.", ""]
+
     md += ["", "## Confidence-gate diagnostic (fusion m=3 versus agreement m=3)", "",
-           "Files: " + ", ".join(f"`{f}`" for f in diag) + ".", ""]
+           "Files: " + ", ".join(f"`{f}`" for f in GATE_FILES) + ".", ""]
     for th in (0.5, 0.9):
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td) / "diag.md"
-            cmd = [sys.executable, str(_here / "ntc_v2_diagnostic.py"), "--theta", str(th),
-                   "--out", str(tmp)]
-            for f in diag:
-                cmd += ["--probes", str(NTC / f)]
-            subprocess.run(cmd, check=True, capture_output=True)
-            rows = [ln for ln in tmp.read_text().splitlines() if ln.startswith("| ")]
-        md += [f"theta = {th}:", ""] + rows + [""]
+        md += [f"theta = {th}:", "", "| setting | items | differs | delayed | identical? |",
+               "|---|---|---|---|---|"] + gate_rows([NTC / f for f in GATE_FILES], 3, th) + [""]
+
     ds = NTC / "w1_math500_DeepSeek-R1-Distill-Qwen-7B.json"
-    r = subprocess.run([sys.executable, str(_here / "ntc_w1_stats.py"), "--probes", str(ds)],
+    r = subprocess.run([sys.executable, str(HERE / "ntc_w1_stats.py"), "--probes", str(ds)],
                        check=True, capture_output=True, text=True)
     keep = [ln for ln in r.stdout.splitlines()
             if ln.startswith(("=== seed-0", "McNemar", "Bootstrap"))]
-    md += ["## DeepSeek-R1-Distill-Qwen-7B on MATH-500: seed-0 significance", "", "```"] + keep + ["```", ""]
+    md += ["## DeepSeek-R1-Distill-Qwen-7B on MATH-500: first-split significance", "",
+           "```"] + keep + ["```", ""]
     out = NTC / "DISSERTATION_NUMBERS.md"
     out.write_text("\n".join(md))
     print("\n".join(md))
-    print(f"\nwrote {out}")
+    print(f"\ntable: {out}")
     return 0
 
 

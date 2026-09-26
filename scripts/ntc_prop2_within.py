@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""Proposition 2 tested WITHIN one benchmark and model.  (no GPU)
+"""Error stickiness within one benchmark, by size of the answer space.
 
-The cross-benchmark correlation of PROP2_VALIDATION.md cannot separate the size
-of the answer space from everything else that differs between benchmarks.
-MMLU-Pro can: the public loader drops 'N/A' options, so surviving items carry
-between four and ten of them.  Bucketing by |A| holds benchmark, model, prompt,
-decoding regime, grader and checkpoint protocol fixed and varies only |A|.
+A comparison across benchmarks cannot separate the size of the answer space
+from everything else that differs between them. MMLU-Pro can: its public
+release drops 'N/A' options, so items carry between four and ten. Bucketing
+MMLU-Pro items by their number of options |A| holds the benchmark, model,
+prompt, decoding, grader and checkpoint protocol fixed and varies only |A|.
 
 Writes experiments/ntc/PROP2_WITHIN.md.
 
@@ -24,7 +24,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from tokenguard.reasoning.datasets import is_correct  # noqa: E402
+from tokenguard.reasoning.datasets import is_correct
 
 NTC = ROOT / "experiments" / "ntc"
 OPT = re.compile(r"^([A-J])\)\s", re.M)
@@ -83,14 +83,14 @@ def main() -> int:
     ap.add_argument("--out", default=str(NTC / "PROP2_WITHIN.md"))
     a = ap.parse_args()
 
-    md = ["# Proposition 2 tested within MMLU-Pro (answer-space size varied, all else fixed)",
-          "", f"Items pooled over three generation seeds; m = {a.m}. Buckets with fewer "
-          f"than {a.min_items} items are reported but not interpreted.", "",
+    md = ["# Error stickiness within MMLU-Pro, by size of the answer space", "",
+          f"Items pooled over three generation seeds; m = {a.m}. Buckets with fewer than "
+          f"{a.min_items} items are omitted. `AGREE delta` is the accuracy change of answer "
+          "agreement against full generation, in points.", "",
           "| model | bucket | items | rho_w | q_w | P_spur | lost-correct | AGREE delta |",
           "|---|---|---|---|---|---|---|---|"]
     print(f"{'model':10s} {'bucket':12s} {'n':>5s} {'rho_w':>7s} {'q_w':>7s} "
           f"{'P_spur':>8s} {'lost':>7s} {'AGREE d':>8s}")
-    rows = []
     for model, fns in FILES.items():
         buckets = defaultdict(list)
         for fn in fns:
@@ -110,13 +110,6 @@ def main() -> int:
                   f"{st['pspur']:8.3f} {st['lost']:7.3f} {st['delta']:+7.1f}")
             md.append(f"| {model} | {name} | {st['n']} | {st['rho']:.3f} | {st['q']:.3f} "
                       f"| {st['pspur']:.3f} | {st['lost']:.3f} | {st['delta']:+.1f} |")
-            rows.append((model, name, st))
-    md += ["", "## Reading", "",
-           "Stickiness falls monotonically with the answer space in both models, and the "
-           "small-|A| bucket reproduces the value measured on four-option GPQA-Diamond "
-           "(0.72-0.77). The downstream deficit in the small bucket rests on ~46 items "
-           "per model and is not resolvable at that sample size; the claim rests on "
-           "rho_w and P_spur."]
     Path(a.out).write_text("\n".join(md) + "\n")
     print(f"\ntable: {a.out}")
     return 0

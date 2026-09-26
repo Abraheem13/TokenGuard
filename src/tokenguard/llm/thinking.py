@@ -1,15 +1,14 @@
-"""Qwen3 THINKING-mode harness with halt-then-emit answer probing.
+"""Thinking-mode generation with answer probing.
 
-The corrected protocol (post-mortem): generate the <think>...</think> trace once,
-then at candidate halt points FORCE an answer by appending
-"</think>\n\nThe final answer is \\boxed{" and letting the model generate it.
-Each probe records the forced answer, its DEER-style confidence (geometric mean
-of chosen-token probabilities), and the EAT-style entropy of the first
-post-</think> token. Any halting policy (DEER / EAT / NTC momentum) can then be
-evaluated post-hoc from the saved probes — honestly, with real emitted answers.
+Each question's <think>...</think> trace is generated once. At checkpoints
+inside the trace an answer is forced by appending
+"</think>\n\nThe final answer is \\boxed{" to the thinking prefix and letting
+the model complete it greedily. Each probe records the trial answer, its
+confidence (geometric mean of the chosen-token probabilities, as in DEER), the
+entropy of the first answer token (as in EAT) and its token cost, so that any
+halting rule can be scored afterwards by replaying the saved probes.
 
-All probes for a batch of questions are generated in ONE vLLM call (cheap:
-~16-32 tokens per probe vs thousands per thinking trace).
+All probes of a batch are generated in one vLLM call.
 """
 
 from __future__ import annotations
@@ -19,20 +18,20 @@ import os
 import re
 from dataclasses import asdict, dataclass, field
 
+# Openings of a paragraph that marks a reflective transition in the reasoning.
 ATP_WORDS = ("Wait", "Alternatively", "Hmm", "But wait", "Let me double-check",
              "Actually", "Let me reconsider")
 
 ANSWER_CUE = "\n</think>\n\nThe final answer is \\boxed{"
 
 
-# --------------------------------------------------------------------------- #
 @dataclass
 class Probe:
     ckpt_tokens: int          # thinking tokens consumed at this checkpoint
-    answer: str               # forced answer (inside \boxed{...})
-    confidence: float         # DEER: geo-mean of chosen-token probs
-    first_entropy: float      # EAT: entropy of first post-</think> token
-    n_probe_tokens: int       # tokens the forced answer consumed
+    answer: str               # trial answer (the content of \boxed{...})
+    confidence: float         # geometric mean of the chosen-token probabilities
+    first_entropy: float      # entropy of the first answer token
+    n_probe_tokens: int       # tokens the probe decoded
 
 
 @dataclass
@@ -42,10 +41,10 @@ class ThinkTrace:
     gold: str
     think_text: str
     n_think_tokens: int
-    natural_answer: str       # answer emitted after natural </think> ("" if none)
+    natural_answer: str       # answer after the model's own </think> ("" if none)
     natural_correct: bool
     n_total_tokens: int       # thinking + natural answer tokens
-    finish_reason: str        # "stop" | "length" (length => overthinking hit cap)
+    finish_reason: str        # "stop", or "length" if the budget was reached
     token_nll: list[float] = field(default_factory=list)
     probes: list[Probe] = field(default_factory=list)
 
@@ -54,10 +53,9 @@ class ThinkTrace:
         return d
 
 
-# --------------------------------------------------------------------------- #
 def read_boxed(text: str) -> str:
-    """Read a \\boxed{...} continuation: text starts INSIDE the braces (we forced
-    "\\boxed{"), so read until the matching close brace."""
+    """Read a forced \\boxed{...} answer: `text` starts inside the braces, so read
+    up to the matching closing brace."""
     depth = 1
     out = []
     for ch in text:
@@ -82,12 +80,12 @@ def split_think(text: str) -> tuple[str, str, bool]:
 
 def build_checkpoints(think_text: str, tok, probe_every: int = 256,
                       max_probes: int = 10) -> list[tuple[int, str]]:
-    """Return [(cum_token_count, think_prefix_text)] checkpoints.
+    """Paragraph-aligned checkpoints as [(cumulative tokens, thinking prefix)].
 
-    Paragraph-aligned: split on blank lines; a checkpoint lands at each paragraph
-    boundary that (a) crosses a multiple of `probe_every` tokens, or (b) starts
-    an ATP ("Wait", "Alternatively", ...) paragraph. Capped at max_probes,
-    evenly thinned if over.
+    The trace is split on blank lines. A checkpoint is placed at each paragraph
+    boundary that crosses a multiple of `probe_every` tokens or precedes a
+    reflective transition (a paragraph opening with one of ATP_WORDS). At most
+    `max_probes` checkpoints are kept, thinned evenly.
     """
     paras = [p for p in re.split(r"\n\s*\n", think_text) if p.strip()]
     if not paras:
@@ -106,10 +104,10 @@ def build_checkpoints(think_text: str, tok, probe_every: int = 256,
             cks.append((cum_tokens, "\n\n".join(prefix_parts)))
             while next_mark <= cum_tokens:
                 next_mark += probe_every
-    # drop a checkpoint identical to the full trace end (that's just "vanilla")
+    # A checkpoint at the end of the trace would repeat full generation.
     if cks and cks[-1][0] >= cum_tokens:
         cks = cks[:-1]
-    if len(cks) > max_probes:  # thin evenly, keep order
+    if len(cks) > max_probes:  # thin evenly, keeping order
         idx = [round(j * (len(cks) - 1) / (max_probes - 1)) for j in range(max_probes)]
         cks = [cks[j] for j in sorted(set(idx))]
     return cks
@@ -126,15 +124,14 @@ def _entropy_from_top(logprob_dict) -> float:
 
 
 def deer_confidence(chosen_logprobs: list[float]) -> float:
-    """Geometric mean of chosen-token probabilities (DEER trial-answer conf)."""
+    """Geometric mean of the chosen-token probabilities (DEER's answer confidence)."""
     if not chosen_logprobs:
         return 0.0
     return float(math.exp(sum(chosen_logprobs) / len(chosen_logprobs)))
 
 
-# --------------------------------------------------------------------------- #
 class ThinkingRunner:
-    """vLLM wrapper: batched thinking generation + batched answer probing."""
+    """vLLM wrapper for batched thinking generation and batched answer probing."""
 
     def __init__(self, model_name: str = "Qwen/Qwen3-4B",
                  tensor_parallel_size: int | None = None,
@@ -178,7 +175,6 @@ class ThinkingRunner:
                         max_model_len=self.max_model_len, seed=self.seed,
                         trust_remote_code=True)
 
-    # ------------------------------------------------------------------ #
     def _chat_prompt(self, question: str) -> str:
         msgs = [{"role": "user", "content": question}]
         try:
@@ -189,7 +185,6 @@ class ThinkingRunner:
             return self._tok.apply_chat_template(
                 msgs, tokenize=False, add_generation_prompt=True)
 
-    # ------------------------------------------------------------------ #
     def generate_thinking(self, questions: list[str], max_tokens: int = 6144,
                           temperature: float = 0.6, top_p: float = 0.95,
                           top_k: int = 20) -> list[dict]:
@@ -206,8 +201,7 @@ class ThinkingRunner:
             comp = out.outputs[0]
             think, answer, closed = split_think(comp.text)
             n_think = len(self._tok.encode(think, add_special_tokens=False))
-            # per-token NLL of the generation (chosen tokens) — enables the
-            # faithful MUR baseline (per-step NLL momentum) downstream
+            # Per-token NLL of the chosen tokens, used by the momentum baseline.
             nll = []
             for i, tid in enumerate(comp.token_ids):
                 lp = comp.logprobs[i] if comp.logprobs and i < len(comp.logprobs) else None
@@ -221,11 +215,12 @@ class ThinkingRunner:
             })
         return res
 
-    # ------------------------------------------------------------------ #
     def probe_batch(self, jobs: list[tuple[str, str]], max_answer_tokens: int = 24
                     ) -> list[Probe]:
-        """jobs = [(question, think_prefix)]; one vLLM call for ALL probes.
-        Greedy decoding for stable confidence; logprobs=20 for the EAT entropy."""
+        """Probe every (question, think_prefix) job in one vLLM call.
+
+        Greedy decoding; the top 20 log-probabilities give the first-token entropy.
+        """
         self._lazy()
         from vllm import SamplingParams
         sp = SamplingParams(temperature=0.0, max_tokens=max_answer_tokens,
@@ -234,7 +229,7 @@ class ThinkingRunner:
                    for q, prefix in jobs]
         outs = self._llm.generate(prompts, sp)
         probes: list[Probe] = []
-        for (q, prefix), out in zip(jobs, outs):
+        for (_q, prefix), out in zip(jobs, outs):
             comp = out.outputs[0]
             ans = read_boxed(comp.text)
             chosen = []
@@ -245,7 +240,7 @@ class ThinkingRunner:
                     first_H = _entropy_from_top(lp)
                 if lp and tid in lp:
                     chosen.append(lp[tid].logprob)
-                # stop accumulating once the boxed answer closed
+                # Stop once the boxed answer has closed.
                 if "}" in self._tok.decode([tid]):
                     break
             probes.append(Probe(

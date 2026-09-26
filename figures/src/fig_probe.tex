@@ -1,0 +1,38 @@
+% The probe mechanism on one trace
+\begin{tikzpicture}[dgm]
+\def\S{2.12}                    % width of one paragraph segment (cm)
+\tikzset{seg/.style={draw=black,line width=0.5pt,fill=white,minimum height=0.62cm,
+                     minimum width=\S cm,inner sep=0pt,anchor=west},
+         prb/.style={dnode,text width=1.50cm,minimum height=0.58cm}}
+
+% row 1: the thinking trace, cut into paragraph-aligned segments
+\foreach \i in {1,...,5}{
+  \node[seg] (s\i) at ({(\i-1)*\S},0) {$s_{\i}$};
+  \coordinate (cp\i) at ({\i*\S},0);                 % checkpoint at the end of s_i
+}
+\node[dlab,anchor=east] at (-0.20,0) {thinking trace};
+
+% row 2: one probe at each checkpoint; row 3: its graded trial answer
+\foreach \i/\ans in {1/24,2/31,3/26,4/26,5/26}{
+  \fill (cp\i) ++(0,-0.31) circle (1.3pt);           % checkpoint marker
+  \node[prb] (p\i) at ({\i*\S},-1.25) {probe $k{=}\i$};
+  \draw[dflow] ($(cp\i)+(0,-0.31)$) -- (p\i.north);
+  \node[font=\scriptsize] (a\i) at ({\i*\S},-2.25) {$\hat{y}_{\i}=\ans$};
+  \draw[dflow] (p\i.south) -- (a\i.north);
+}
+\node[dlab,anchor=east] at (-0.20,-1.25) {probe};
+\node[dlab,anchor=east] at (-0.20,-2.25) {trial answer};
+
+% the cue appended at every checkpoint (shown at checkpoint 3)
+\node[dann,text width=6.4cm] (cue) at ({3*\S},1.30)
+  {cue appended at every checkpoint:\\
+   \texttt{\char`\\n</think>\char`\\n\char`\\nThe final answer is \char`\\boxed\{}};
+\draw[dlink] (cue.south) -- ($(cp3)+(0,0.31)$);
+
+% an agreement rule with m = 3 halts at the third repetition
+\draw[decorate,decoration={brace,amplitude=4pt,mirror},line width=0.5pt]
+  ($(a3.south west)+(-0.05,-0.08)$) -- ($(a5.south east)+(0.05,-0.08)$);
+\node[dnote,text width=7.6cm] at ({4*\S},-3.05)
+  {three consecutive answers agree, so an agreement rule with \mbox{$m=3$} halts at
+   checkpoint 5};
+\end{tikzpicture}

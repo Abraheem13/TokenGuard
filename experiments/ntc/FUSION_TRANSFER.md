@@ -1,6 +1,6 @@
 # Does the fusion tier's parameter transfer across domains?
 
-12 domains x 5 splits, same evaluation items as SHIFT_CERTIFICATE.md. Deficit in accuracy points against full generation on the evaluation split; cut in % of full-generation tokens (KV-fork).
+12 domains x 5 splits, the same evaluation items as SHIFT_CERTIFICATE.md. Deficit: accuracy change against full generation on the evaluation split, in points. Cut: saving in % of full-generation tokens (KV-fork).
 
 ## Fixed parameters (no calibration)
 

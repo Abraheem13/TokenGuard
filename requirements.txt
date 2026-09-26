@@ -1,16 +1,20 @@
-# Analysis (CPU only): every table and figure in the dissertation is produced
-# from the frozen probe streams with these packages alone.
+# Analyses and figures (CPU only). Versions are those the committed results
+# were reproduced with; any recent release of each should give identical output.
 numpy>=1.26
-scikit-learn>=1.5          # TF-IDF and logistic routing classifier (joint tier)
-sympy>=1.12                # symbolic answer equivalence, as in DEER's grader
-matplotlib>=3.8            # optional: the PNG figures under experiments/ntc
+scikit-learn>=1.5
 
-# Generation (GPU only): needed to regenerate probe streams from scratch.
-# vllm pulls its own pinned torch build, so install it on the GPU host.
-# vllm>=0.6
-# transformers>=4.46
-# datasets>=3.0
+# The symbolic answer grader distributed with DEER (external/DEER/utils/grader.py).
+# The analyses read the committed verdict cache, so these are needed only to
+# re-grade from scratch (scripts/ntc_grader_check.py).
+sympy>=1.12
+regex
+word2number
+latex2sympy2==1.9.1
+antlr4-python3-runtime==4.7.2
 
-# Development
+# Tests and lint.
 pytest>=8.0
 ruff>=0.6
+
+# Generating new probe streams additionally needs a GPU and:
+#   vllm, transformers, datasets

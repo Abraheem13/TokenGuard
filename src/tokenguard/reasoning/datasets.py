@@ -1,4 +1,12 @@
-"""Reasoning benchmarks: GSM8K, MATH-500, GPQA-Diamond — loaders + scoring."""
+"""Benchmark loaders, answer extraction and the answer grader.
+
+Six benchmarks are loaded from their public Hugging Face releases: GSM8K,
+MATH-500, GPQA-Diamond, MMLU-Pro, AIME-2024 and AIME-2025. Open-ended answers
+are graded by the symbolic equivalence checker distributed with DEER
+(external/DEER/utils/grader.py); its verdicts are cached on disk in
+experiments/ntc/grader_cache.json so that every reported number is
+reproducible without re-running the grader.
+"""
 
 from __future__ import annotations
 
@@ -7,14 +15,20 @@ import re
 from pathlib import Path
 
 
-def load_benchmark(name: str, split: str = "test", limit: int | None = None):
+def load_benchmark(name: str, split: str = "test", limit: int | None = None,
+                   shuffle_options: bool = True):
+    """Load a benchmark as a list of {id, question, answer} dicts.
+
+    GPQA-Diamond lists the correct option first; with shuffle_options (the
+    default) its four options are shuffled deterministically per item.
+    """
     name = name.lower()
     if name == "gsm8k":
         return _load_gsm8k(split, limit)
     if name in ("math500", "math-500"):
         return _load_math500(limit)
     if name in ("gpqa_diamond", "gpqa"):
-        return _load_gpqa_diamond(limit)
+        return _load_gpqa_diamond(limit, shuffle_options)
     if name in ("aime24", "aime-24", "aime2024"):
         return _load_aime24(limit)
     if name in ("aime25", "aime-25", "aime2025"):
@@ -48,7 +62,9 @@ def _load_math500(limit):
     return out
 
 
-def _load_gpqa_diamond(limit):
+def _load_gpqa_diamond(limit, shuffle_options=True):
+    import random
+
     from datasets import load_dataset
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond", split="train")
     out = []
@@ -58,11 +74,10 @@ def _load_gpqa_diamond(limit):
         correct = ex["Correct Answer"]
         incorrect = [ex["Incorrect Answer 1"], ex["Incorrect Answer 2"],
                      ex["Incorrect Answer 3"]]
-        # GPQA_SHUFFLE: deterministic per-item option shuffle (no position bias)
-        import random as _random
         all4 = [correct] + incorrect
         order = [0, 1, 2, 3]
-        _random.Random(1234 + i).shuffle(order)
+        if shuffle_options:
+            random.Random(1234 + i).shuffle(order)
         options = [all4[j] for j in order]
         letters = ["A", "B", "C", "D"]
         ans_letter = letters[order.index(0)]
@@ -125,10 +140,12 @@ def _norm(s: str) -> str:
         return s.lower()
 
 
-# --- DEER grader adoption (sympy equivalence for math/aime) --------------
+# ------------------------------------------------------------------ grader
 _DEER_GRADER = "unset"
 
+
 def _get_deer_grader():
+    """DEER's math_equal, imported on first use; None if it cannot be loaded."""
     global _DEER_GRADER
     if _DEER_GRADER == "unset":
         try:
@@ -161,7 +178,8 @@ def _alarm_handler(signum, frame):
     raise TimeoutError("grader timeout")
 
 
-# GRADER_DISK_CACHE: persisted verdicts => perfectly reproducible numbers
+# Verdicts persisted on disk: every analysis reads them, so a result does not
+# depend on re-running the grader.
 _GC_PATH = Path(__file__).resolve().parents[3] / "experiments" / "ntc" / "grader_cache.json"
 _GC = None
 _GC_DIRTY = False
@@ -219,10 +237,11 @@ def _graded_equal_compute(p: str, g: str) -> bool:
 
 
 def is_correct(pred: str, gold: str, benchmark: str) -> bool:
+    """Whether a model output answers `gold`, by normalised string match and,
+    on the open-answer benchmarks, by the symbolic grader."""
     p = extract_answer(pred, benchmark)
     if _norm(p) == _norm(gold):
         return True
-    # sympy equivalence (DEER grader) for open-math benchmarks only
     if benchmark in ("math500", "math-500", "aime24", "aime-24", "aime2024",
                      "gsm8k", "aime25", "aime-25", "aime2025") and p and gold:
         return _graded_equal(p, gold)
@@ -230,9 +249,7 @@ def is_correct(pred: str, gold: str, benchmark: str) -> bool:
 
 
 def _load_aime24(limit):
-    """AIME 2024 (30 problems; integer answers 0-999). avg@k is obtained by
-    running the harness k times with different --seed values and aggregating
-    with scripts/ntc_genseed_agg.py."""
+    """AIME 2024: 30 problems with integer answers from 0 to 999."""
     from datasets import load_dataset
     try:
         ds = load_dataset("HuggingFaceH4/aime_2024", split="train")
@@ -250,7 +267,7 @@ def _load_aime24(limit):
 
 
 def _load_aime25(limit):
-    """AIME 2025 (30 problems). Primary: DEER's local jsonl; HF fallback."""
+    """AIME 2025: 30 problems, from DEER's local copy if present, else Hugging Face."""
     import json as _json
     local = Path(__file__).resolve().parents[3] / "external" / "DEER" / "data" / "aime25" / "test.jsonl"
     out = []
@@ -280,11 +297,10 @@ def _load_aime25(limit):
 
 
 def _load_mmlu_pro(limit):
-    """MMLU-Pro: up to 10 options per question (vs GPQA's 4).
+    """MMLU-Pro: up to ten options per question; the items are a seeded random sample.
 
-    Deterministic stratified subsample across categories so a 200-item run is
-    representative. Options are used in their native order (the gold index
-    already varies across items, so there is no position artifact to correct).
+    Options keep their source order; the position of the correct option already
+    varies across items.
     """
     import random as _random
 

@@ -1,4 +1,4 @@
-# Generation-seed aggregate — mmlupro_Qwen3-4B (3 seeds x 10 splits)
+# Generation-seed aggregate: mmlupro_Qwen3-4B (3 seeds x 10 splits)
 
 | method | accuracy (mean ± std over gen seeds) | cut % |
 |---|---|---|

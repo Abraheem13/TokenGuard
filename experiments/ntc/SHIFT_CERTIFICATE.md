@@ -1,6 +1,6 @@
 # Does the risk certificate survive domain shift?
 
-12 target domains x 5 calibration splits; |C| = 19; alpha = 0.1. `worst cell` is the single worst domain-split combination, a harsher statistic than the seed-averaged worst case of SLO_ATTAINMENT.md. `transferred` is averaged over all 11 sources per target.
+12 target domains x 5 calibration splits; |C| = 19; alpha = 0.1. Deficits are accuracy changes against full generation on the evaluation split, in points; cuts are in % of full-generation tokens. `worst cell` is the single worst domain-split combination, a harsher statistic than the seed-averaged worst case of SLO_ATTAINMENT.md. `transferred` is averaged over all 11 sources per target. `pi0` is the null action.
 
 ## eps = 0.01
 

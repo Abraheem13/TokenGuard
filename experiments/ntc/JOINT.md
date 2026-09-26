@@ -1,5 +1,6 @@
-# Joint router+budget — math500 (held-out n=120, seed 0)
-small=Qwen/Qwen3-1.7B (policy NTC-v2 {'m': 2, 'theta': 0.7}), large=Qwen/Qwen3-4B (policy AGREE {'m': 3}); router=TF-IDF+LogReg on warm-up n=80.
+# Joint tier: model routing with calibrated halting (math500)
+
+Evaluation n = 120, split seed 0. Small model Qwen/Qwen3-1.7B (rule NTC-v2 {'m': 2, 'theta': 0.7}); large model Qwen/Qwen3-4B (rule AGREE {'m': 3}); router: TF-IDF and logistic regression trained on the 80 calibration items. `tau` is the routing threshold on the predicted probability that the small model is correct; `cost` is mean tokens x model size in billions of parameters; `%small` is the share of queries routed to the small model.
 
 | tau | acc | cost | tokens | %small |
 |---|---|---|---|---|

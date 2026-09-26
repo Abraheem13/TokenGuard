@@ -1,4 +1,4 @@
-# Generation-seed aggregate — aime24_avg8 (8 seeds x 10 splits)
+# Generation-seed aggregate: aime24_avg8 (8 seeds x 10 splits)
 
 | method | accuracy (mean ± std over gen seeds) | cut % |
 |---|---|---|

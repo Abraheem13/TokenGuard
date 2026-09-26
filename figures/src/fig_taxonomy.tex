@@ -1,0 +1,29 @@
+% Where adaptive halting sits among ways of reducing inference cost
+\begin{tikzpicture}[dgm,font=\footnotesize]
+\def\CW{2.86}                   % text width of a branch box (cm)
+\def\CX{3.45}                   % distance between branch centres (cm)
+\tikzset{box/.style={dnode,font=\scriptsize,inner sep=4pt,
+                     text width=\CW cm,minimum height=2.50cm}}
+
+\node[dnode,font=\footnotesize,inner sep=4pt,text width=13.10cm,minimum height=0.80cm]
+  (root) at (0,0) {\textbf{Reducing the cost of inference in a reasoning language model}};
+
+\node[box] (c1) at (-1.5*\CX,-2.45)
+  {{\footnotesize\textbf{Smaller model}}\\[2pt] distillation, quantisation, pruning\\[3pt]
+   \textit{orthogonal: cheaper tokens}};
+\node[box,fill=black!10] (c2) at (-0.5*\CX,-2.45)
+  {{\footnotesize\textbf{Shorter trace}}\\[2pt] a fixed budget, or halting during generation\\[3pt]
+   \textbf{this dissertation}};
+\node[box] (c3) at (0.5*\CX,-2.45)
+  {{\footnotesize\textbf{Cheaper model}}\\[2pt] route easy queries to a small model\\[3pt]
+   \textit{complementary: joint tier}};
+\node[box] (c4) at (1.5*\CX,-2.45)
+  {{\footnotesize\textbf{Faster serving}}\\[2pt] batching, paged attention, speculative
+   decoding\\[3pt] \textit{orthogonal: cheaper tokens}};
+
+% one trunk, one bus, four branches
+\coordinate (bus) at (0,-0.82);
+\draw[dbus] (root.south) -- (bus);
+\draw[dbus] (bus -| c1.north) -- (bus -| c4.north);
+\foreach \n in {c1,c2,c3,c4} \draw[dflow] (bus -| \n.north) -- (\n.north);
+\end{tikzpicture}

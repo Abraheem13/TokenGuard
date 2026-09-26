@@ -1,1 +1,1 @@
-"""Real-LLM generation harness for token-budget experiments."""
+"""Thinking-mode generation with answer probing (vLLM)."""

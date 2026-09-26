@@ -1,0 +1,33 @@
+% The deployable evaluation, from probe streams to reported metrics
+\begin{tikzpicture}[dgm]
+\def\B{2.52}\def\G{0.40}
+\node[dnode,text width=2.27cm,minimum height=1.94cm,anchor=north west] (dat) at (0,0)
+  {\dtitle{Probe streams} 12 settings, 6{,}068 traces, frozen};
+\node[dnode,text width=2.27cm,minimum height=1.94cm,anchor=north west] (spl)
+  at ({\B+\G},0) {\dtitle{Random split} 40\% calibration, 60\% evaluation, repeated $R$
+   times};
+\node[dnode,text width=2.27cm,minimum height=1.94cm,anchor=north west] (cal)
+  at ({2*(\B+\G)},0) {\dtitle{Calibration part} each method picks its parameter for
+   every tolerance $\varepsilon$};
+\node[dnode,text width=2.27cm,minimum height=1.94cm,anchor=north west] (evl)
+  at ({3*(\B+\G)},0) {\dtitle{Evaluation part} the chosen rule is replayed once};
+\node[dmark,text width=2.27cm,minimum height=1.94cm,anchor=north west] (met)
+  at ({4*(\B+\G)},0) {\dtitle{Reported metrics} op-AUCC, minimax regret, attainment};
+\foreach \a/\b in {dat/spl,spl/cal,cal/evl,evl/met} \draw[dflow] (\a.east) -- (\b.west);
+\draw[dflow] (spl.south) -- ++(0,-0.42) -| (evl.south);
+
+\node[dann,text width=6.0cm,anchor=north west] (n1) at (0.10,-2.55)
+  {the evaluation part is never read while a parameter is chosen, and the split is drawn
+   again for each of the $R$ repetitions};
+\node[dann,text width=6.0cm,anchor=north west] (n2) at (7.55,-2.55)
+  {an oracle protocol, which picks the parameter on the evaluation part, is reported
+   nowhere in this dissertation};
+\draw[dlink] (n1.north) -- (n1.north |- cal.south);
+\draw[dlink] (n2.north) -- (n2.north |- met.south);
+
+\node[dnote,text width=13.6cm,anchor=north west] at (0,-4.10)
+  {Hindsight selection changes rankings, not only levels: on one split of GSM8K with
+   Qwen3-4B the fusion tier scores 0.950 when its parameter is chosen on the evaluation
+   part and 0.886 when it must be chosen on the calibration part, which reverses its
+   order with answer agreement.};
+\end{tikzpicture}

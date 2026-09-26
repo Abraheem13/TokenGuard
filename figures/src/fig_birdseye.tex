@@ -1,0 +1,36 @@
+% The argument of the dissertation
+\begin{tikzpicture}[dgm,font=\footnotesize]
+% geometry (cm): full-width boxes and three pillars share the same outer edges
+\def\FW{13.10}                  % text width of a full-width box
+\def\PW{4.06}                   % text width of a pillar
+\def\PX{4.52}                   % distance between pillar centres
+\tikzset{box/.style={dnode,font=\footnotesize,inner sep=4pt}}
+
+\node[box,text width=\FW cm,minimum height=1.00cm] (prob) at (0,0)
+  {\textbf{Problem.} Five published halting signals stop a reasoning model early.
+   Does any of them generalise across benchmarks and models?};
+
+\node[box,text width=\PW cm,minimum height=2.75cm] (ev) at (-\PX,-2.42)
+  {\textbf{1. Evidence}\\[2pt] six signals in twelve settings, one protocol that
+   calibrates, then tests\\[3pt] one rule spans $+8.3$ to $-23.5$ points};
+\node[box,text width=\PW cm,minimum height=2.75cm] (me) at (0,-2.42)
+  {\textbf{2. Mechanism}\\[2pt] wrong answers repeat more often as the answer space
+   shrinks\\[3pt] stickiness predicts where agreement fails};
+\node[box,text width=\PW cm,minimum height=2.75cm] (ct) at (\PX,-2.42)
+  {\textbf{3. Controller}\\[2pt] one shared probe stream; tiers ordered by what they
+   require\\[3pt] worst-case regret 0.031, against 0.100};
+
+\node[box,text width=\FW cm,minimum height=1.00cm] (gu) at (0,-4.86)
+  {\textbf{Guarantee, stress-tested.} Holds in 97\% of cells within a domain; the worst
+   transferred cell loses 50 points; required in every domain, it certifies only the
+   policy that never halts.};
+
+\node[box,fill=black!10,text width=\FW cm,minimum height=1.00cm] (out) at (0,-6.46)
+  {\textbf{Outcome.} Certify halting per domain, or deploy the fusion tier chosen to be
+   safe across domains.};
+
+\foreach \n in {ev,me,ct}{
+  \draw[dflow] (prob.south -| \n.north) -- (\n.north);
+  \draw[dflow] (\n.south) -- (gu.north -| \n.south);}
+\draw[dflow] (gu.south) -- (out.north);
+\end{tikzpicture}

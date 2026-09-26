@@ -6,36 +6,19 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# Data & heavy artifacts (regenerate via `make data`)
-data/raw/
-data/processed/
-*.pkl
-*.parquet
+# GPQA-Diamond probe files: distributed only inside experiments/ntc/gpqa_diamond.zip
+experiments/ntc/*gpqa*.json
 
-# Experiment outputs (figures/tables are regenerated; logs are local)
-experiments/results/*.log
-experiments/telemetry.sqlite
+# LaTeX intermediates of figures/build.sh
+figures/*.aux
+figures/*.log
 
-# Secrets / local overrides
-.env
-configs/local*.yaml
+# External code: outputs of running DEER locally
+external/DEER/outputs/
+external/DEER/logs/
+external/DEER/data/
 
-# OS / editor
+# OS and editors
 .DS_Store
 .idea/
 .vscode/
-external/DEER/outputs/
-external/DEER/logs/
-external/DEER/__pycache__/
-external/DEER/**/__pycache__/
-*.jsonl
-
-# paper build artefacts
-paper/*.aux
-paper/*.log
-paper/*.out
-paper/*.fls
-paper/*.fdb_latexmk
-paper/main.pdf
-paper/figures/*.pdf
-paper/figures/*.png

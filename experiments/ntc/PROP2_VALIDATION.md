@@ -1,5 +1,6 @@
-# Proposition 2 — empirical validation (corrected estimator)
-rho_w / q_w estimated over INCORRECT trial answers only; m=3.
+# Error stickiness and the failures of answer agreement
+
+rho_w and q_w are estimated over incorrect trial answers only; m = 3. `AGREE Δ` is the accuracy change of answer agreement against full generation.
 
 | benchmark/model | rho_w | q_w | P_spur | lost-correct risk | AGREE Δ (pts) | n |
 |---|---|---|---|---|---|---|
@@ -17,5 +18,5 @@ rho_w / q_w estimated over INCORRECT trial answers only; m=3.
 | math500/DeepSeek-R1-Distill-Qwen-7B | 0.256 | 0.319 | 0.021 | 0.184 | -14.0 | 200 |
 
 n = 12 settings.
-Spearman(P_spur, lost-correct risk) = +0.713 (positive supports Prop. 2).
-Spearman(P_spur, AGREE delta) = -0.510 (negative supports Prop. 2).
+Spearman(P_spur, lost-correct risk) = +0.713 (Proposition 2 predicts a positive value).
+Spearman(P_spur, AGREE delta) = -0.510 (Proposition 2 predicts a negative value).

@@ -1,25 +1,39 @@
-# Reproduction entry points. Every target below runs on a CPU from the frozen
-# probe streams in experiments/ntc; only `generate` needs a GPU.
-.PHONY: help install test lint tables corpus clean
+# Reproduction entry points. `GPQA_PASSWORD=<password> make all` regenerates every
+# result table and figure from the committed probe streams and checks that nothing
+# differs from the committed versions. Everything runs on a CPU; figures need
+# pdfLaTeX. The password of the GPQA-Diamond archive is available on request from
+# abraheemrashid@outlook.com (see README).
+.PHONY: all install data results figures check test lint clean help
 
-help:
-	@grep -E '^[a-z]+:.*##' Makefile | sed 's/:.*##/ ->/'
+all: results figures check ## regenerate every table and figure, then verify them
 
-install:          ## install the package and the analysis dependencies
-	pip install -r requirements.txt && pip install -e .
+install: ## install the package and the analysis dependencies
+	python -m pip install -r requirements.txt
+	python -m pip install -e .
 
-test:             ## run the unit tests
-	python -m pytest tests -q
+data: ## extract the GPQA-Diamond probe files (needs GPQA_PASSWORD)
+	bash scripts/unpack_gpqa.sh
 
-lint:             ## static checks
-	ruff check src scripts tests
-
-tables:           ## regenerate every result file from the frozen probe streams
+results: ## regenerate every result file in experiments/ntc
 	bash scripts/run_analyses.sh
 
-corpus:           ## regenerate the corpus inventory and track tables
-	python scripts/ntc_data_inventory.py
-	python scripts/ntc_corpus_tracks.py
+figures: ## regenerate the data figures and render all figures to PDF and PNG
+	python scripts/make_figures.py
+	bash figures/build.sh
 
-clean:            ## remove caches (never touches experiments/)
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
+check: ## fail if any regenerated table or figure source differs from the committed one
+	@git diff --exit-code --stat -- experiments figures/src \
+	  && echo "All result files and figure sources match the committed versions."
+
+test: ## run the unit tests
+	python -m pytest
+
+lint: ## static checks
+	ruff check scripts src tests
+
+clean: ## remove caches
+	find . -name __pycache__ -type d -prune -exec rm -rf {} +
+	rm -rf .pytest_cache .ruff_cache
+
+help: ## list the targets
+	@grep -E '^[a-z]+:.*## ' Makefile | sed 's/:.*## /\t/'
