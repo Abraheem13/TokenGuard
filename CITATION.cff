@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software or data, please cite the dissertation."
-title: "No Fixed Halting Signal Generalizes: Risk-Controlled Early Exit for Reasoning Language Models"
+title: "Knowing When to Stop Thinking: Risk-Controlled Early Exit for Reasoning Language Models"
 type: software
 authors:
   - family-names: Rashid
@@ -13,7 +13,7 @@ date-released: 2026-09-26
 preferred-citation:
   type: thesis
   thesis-type: "MSc dissertation"
-  title: "No Fixed Halting Signal Generalizes: Risk-Controlled Early Exit for Reasoning Language Models"
+  title: "Knowing When to Stop Thinking: Risk-Controlled Early Exit for Reasoning Language Models"
   authors:
     - family-names: Rashid
       given-names: Abraheem

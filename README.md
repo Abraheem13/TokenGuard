@@ -1,4 +1,4 @@
-# No Fixed Halting Signal Generalizes
+# Knowing When to Stop Thinking
 
 **Risk-controlled early exit for reasoning language models.**
 
@@ -162,7 +162,7 @@ advantage is in the worst case.
 
 ```bibtex
 @mastersthesis{rashid2026halting,
-  title  = {No Fixed Halting Signal Generalizes: Risk-Controlled Early Exit
+  title  = {Knowing When to Stop Thinking: Risk-Controlled Early Exit
             for Reasoning Language Models},
   author = {Rashid, Abraheem},
   school = {Brunel University London},
