@@ -78,6 +78,7 @@ holds the exact command for each.
 | Section 5.10 (joint tier) | `JOINT.md` | `ntc_joint_router.py` |
 | Section 3.2, Table 4.10 (grading) | `GRADER_CHECK.md` | `ntc_grader_check.py` |
 | Data provenance | `DATA_INVENTORY.md`, `PROVENANCE.md` | `ntc_data_inventory.py`, `ntc_provenance.py` |
+| Journal paper only: sensitivity to how budget-exhausted traces are scored | `TRUNCATION_SENSITIVITY.md` | `ntc_truncation_sensitivity.py` |
 
 The diagrams (Figures 1.1, 2.1, 3.1 to 3.5 and 4.2) are in `figures/src/` with the
 data figures.
@@ -89,6 +90,7 @@ scripts/ntc_w1_stats.py        halting rules, overhead-inclusive replay, risk-co
 scripts/ntc_*.py               one analysis per result file (CPU)
 scripts/run_analyses.sh        regenerates every result file
 scripts/make_figures.py        writes every data figure from the result files
+paper/make_paper_figures.py    draws the four data figures of the journal paper from the result files
 scripts/ntc_w1_thinking.py     generates a probe stream (GPU, vLLM)
 src/tokenguard/llm/            thinking-mode generation and answer probing
 src/tokenguard/reasoning/      benchmark loaders, answer extraction and the grader
