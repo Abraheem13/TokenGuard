@@ -73,6 +73,9 @@ step "Joint tier (JOINT.md)"
 python scripts/ntc_joint_router.py --small "$NTC/w1_math500_Qwen3-1.7B.json" \
     --large "$NTC/w1_math500_Qwen3-4B.json" --small-params 1.7 --large-params 4.0
 
+step "Sensitivity to the scoring of budget-exhausted traces (TRUNCATION_SENSITIVITY.md)"
+python scripts/ntc_truncation_sensitivity.py
+
 step "Corpus accounting and provenance (CORPUS_TRACKS.md, DATA_INVENTORY.md, PROVENANCE.md)"
 python scripts/ntc_corpus_tracks.py
 python scripts/ntc_data_inventory.py
