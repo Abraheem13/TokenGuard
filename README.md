@@ -19,6 +19,7 @@ accuracy.
 | Finding | Evidence |
 |---|---|
 | **No fixed halting signal generalises.** Answer agreement, the strongest, gains 8.3 accuracy points on GSM8K with Qwen3-8B and loses 23.5 on AIME-2024 with Qwen3-4B under one tuning procedure. | `SLO_ATTAINMENT.md` |
+| **Gains over full generation depend on how truncated traces are scored.** The 8.3-point gain on GSM8K is measured against full generation as recorded, in which a trace that exhausts its budget counts as wrong. Against budget-forced full generation, agreement changes accuracy by +0.3 points there, at a 58% token saving. | `TRUNCATION_SENSITIVITY.md` |
 | **The failure has a measurable cause.** Wrong answers repeat more readily as the answer space shrinks: error stickiness rises from 0.130 on open-ended GSM8K to 0.765 on four-option GPQA-Diamond, and the risk of losing a correct answer rises with it (Spearman 0.71). | `PROP2_VALIDATION.md`, `PROP2_WITHIN.md` |
 | **The fusion tier has the lowest worst-case regret**, 0.031 against 0.100 for the best fixed signal, and never loses more than 0.5 points in any of eleven settings, at a probing overhead of 0.9 to 7.1%. | `PRIMARY_STATS.md`, `SLO_ATTAINMENT.md`, `DISSERTATION_NUMBERS.md` |
 | **The risk certificate is conditional.** Within a domain it holds in 97% of cells; transferred to another domain the worst cell loses 50 points; required to hold in every domain it certifies only the null action. | `SHIFT_CERTIFICATE.md` |
@@ -41,6 +42,9 @@ The eight GPQA-Diamond probe files are distributed in the password-protected
 archive `experiments/ntc/gpqa_diamond.zip`, because the authors of GPQA ask that
 its questions not be posted online in plain text. To obtain the password, email
 abraheemrashid@outlook.com. Every other file is in plain text.
+
+Maintainers can re-create the archive from the eight probe files, or change its
+password, with `GPQA_PASSWORD=<new password> bash scripts/pack_gpqa.sh`.
 
 `make all` runs three steps:
 
@@ -89,6 +93,7 @@ data figures.
 scripts/ntc_w1_stats.py        halting rules, overhead-inclusive replay, risk-controlled calibration
 scripts/ntc_*.py               one analysis per result file (CPU)
 scripts/run_analyses.sh        regenerates every result file
+scripts/unpack_gpqa.sh         extracts the GPQA-Diamond probe files; pack_gpqa.sh re-creates the archive
 scripts/make_figures.py        writes every data figure from the result files
 paper/make_paper_figures.py    draws the four data figures of the journal paper from the result files
 scripts/ntc_w1_thinking.py     generates a probe stream (GPU, vLLM)
