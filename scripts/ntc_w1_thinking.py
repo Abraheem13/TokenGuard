@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -62,6 +63,11 @@ def main() -> int:
                          "options (answer-space intervention)")
     ap.add_argument("--gpu-mem", type=float, default=0.90,
                     help="fraction of GPU memory vLLM may use")
+    ap.add_argument("--engine", choices=["vllm", "hf"], default="vllm",
+                    help="vllm (Linux), or hf: plain PyTorch/transformers, which also "
+                         "runs on native Windows")
+    ap.add_argument("--probe-batch", type=int, default=8,
+                    help="probes per forward pass (hf engine only)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -74,14 +80,29 @@ def main() -> int:
     instr = "" if args.no_instruction else INSTRUCTION.get(args.benchmark, "")
     for ex in data:
         ex["question"] = ex["question"] + instr
-    runner = ThinkingRunner(model_name=args.model, tensor_parallel_size=args.tp_size,
-                            gpu_memory_utilization=args.gpu_mem,
-                            max_model_len=args.max_model_len, seed=args.seed)
+    if args.engine == "hf":
+        from tokenguard.llm.thinking_hf import HFThinkingRunner
+        runner = HFThinkingRunner(model_name=args.model, max_model_len=args.max_model_len,
+                                  seed=args.seed, probe_batch_size=args.probe_batch)
+    else:
+        runner = ThinkingRunner(model_name=args.model, tensor_parallel_size=args.tp_size,
+                                gpu_memory_utilization=args.gpu_mem,
+                                max_model_len=args.max_model_len, seed=args.seed)
     bench = args.benchmark
 
+    # Finished batches are saved after each batch, so an interrupted run resumes.
+    partial = Path(out_path + ".partial")
     traces: list[dict] = []
-    for i in range(0, len(data), args.batch):
+    if partial.exists():
+        saved = json.loads(partial.read_text())
+        if saved.get("args") == vars(args) and len(saved["traces"]) % args.batch == 0:
+            traces = saved["traces"]
+            print(f"resuming from {partial}: {len(traces)} traces already done")
+    t_start = time.time()
+    for i in range(len(traces), len(data), args.batch):
         chunk = data[i:i + args.batch]
+        if args.engine == "hf":
+            runner._calls = i // args.batch   # the seed of a batch depends on its index only
         gens = runner.generate_thinking([ex["question"] for ex in chunk],
                                         max_tokens=args.max_think,
                                         temperature=args.temperature)
@@ -107,7 +128,13 @@ def main() -> int:
                 n_total_tokens=g["n_total"], finish_reason=g["finish"],
                 token_nll=g.get("token_nll", []), probes=my_probes)
             traces.append(tr.to_dict())
-        print(f"[{min(i + args.batch, len(data))}/{len(data)}] generated and probed")
+        done = min(i + args.batch, len(data))
+        el = time.time() - t_start
+        print(f"[{done}/{len(data)}] generated and probed | "
+              f"{sum(g['n_total'] for g in gens)} tokens, {len(jobs)} probes | "
+              f"elapsed {el / 60:.1f} min", flush=True)
+        partial.parent.mkdir(parents=True, exist_ok=True)
+        partial.write_text(json.dumps({"args": vars(args), "traces": traces}))
 
     nat_acc = float(np.mean([t["natural_correct"] for t in traces]))
     think_toks = [t["n_think_tokens"] for t in traces]
@@ -128,6 +155,7 @@ def main() -> int:
         {"model": args.model, "benchmark": bench, "args": vars(args), "traces": traces},
         indent=1))
     print(f"\nwrote {out_path}")
+    partial.unlink(missing_ok=True)
     return 0
 
 

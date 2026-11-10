@@ -232,6 +232,8 @@ def _graded_equal_compute(p: str, g: str) -> bool:
     me = _get_deer_grader()
     if me is None:
         return False
+    if not hasattr(_signal, "SIGALRM"):   # Windows has no alarm signal
+        return _graded_equal_threaded(me, p, g)
     old_h = _signal.signal(_signal.SIGALRM, _alarm_handler)
     _signal.alarm(5)
     try:
@@ -241,6 +243,24 @@ def _graded_equal_compute(p: str, g: str) -> bool:
     finally:
         _signal.alarm(0)
         _signal.signal(_signal.SIGALRM, old_h)
+
+
+def _graded_equal_threaded(me, p: str, g: str, timeout: float = 5.0) -> bool:
+    """The grader under a wall-clock limit without signals: a call that does not
+    return in time counts as not equal, as under the alarm."""
+    import threading
+    box: list[bool] = []
+
+    def run():
+        try:
+            box.append(bool(me(p, g, timeout=False)))
+        except Exception:
+            box.append(False)
+
+    th = threading.Thread(target=run, daemon=True)
+    th.start()
+    th.join(timeout)
+    return bool(box and box[0])
 
 
 def is_correct(pred: str, gold: str, benchmark: str) -> bool:
