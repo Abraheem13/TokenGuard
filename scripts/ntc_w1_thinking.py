@@ -57,6 +57,11 @@ def main() -> int:
                     help="omit the answer-format instruction appended to each question")
     ap.add_argument("--source-order", action="store_true",
                     help="keep GPQA-Diamond options in source order (correct option first)")
+    ap.add_argument("--n-options", type=int, default=None,
+                    help="MMLU-Pro only: show each ten-option question with this many "
+                         "options (answer-space intervention)")
+    ap.add_argument("--gpu-mem", type=float, default=0.90,
+                    help="fraction of GPU memory vLLM may use")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -64,11 +69,13 @@ def main() -> int:
     out_path = args.out or (f"experiments/ntc/w1_{args.benchmark}_"
                             f"{args.model.split('/')[-1]}{suffix}.json")
     data = load_benchmark(args.benchmark, limit=args.limit,
-                          shuffle_options=not args.source_order)
+                          shuffle_options=not args.source_order,
+                          n_options=args.n_options)
     instr = "" if args.no_instruction else INSTRUCTION.get(args.benchmark, "")
     for ex in data:
         ex["question"] = ex["question"] + instr
     runner = ThinkingRunner(model_name=args.model, tensor_parallel_size=args.tp_size,
+                            gpu_memory_utilization=args.gpu_mem,
                             max_model_len=args.max_model_len, seed=args.seed)
     bench = args.benchmark
 

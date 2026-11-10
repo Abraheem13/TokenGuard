@@ -16,11 +16,14 @@ from pathlib import Path
 
 
 def load_benchmark(name: str, split: str = "test", limit: int | None = None,
-                   shuffle_options: bool = True):
+                   shuffle_options: bool = True, n_options: int | None = None):
     """Load a benchmark as a list of {id, question, answer} dicts.
 
     GPQA-Diamond lists the correct option first; with shuffle_options (the
     default) its four options are shuffled deterministically per item.
+
+    n_options (MMLU-Pro only) runs the answer-space intervention: the same
+    ten-option questions are presented with only n_options of their options.
     """
     name = name.lower()
     if name == "gsm8k":
@@ -34,7 +37,11 @@ def load_benchmark(name: str, split: str = "test", limit: int | None = None,
     if name in ("aime25", "aime-25", "aime2025"):
         return _load_aime25(limit)
     if name in ("mmlu_pro", "mmlu-pro", "mmlupro"):
+        if n_options is not None:
+            return _load_mmlu_pro_k(limit, n_options)
         return _load_mmlu_pro(limit)
+    if n_options is not None:
+        raise ValueError("n_options is supported for mmlu_pro only")
     raise ValueError(f"unknown benchmark {name!r}")
 
 
@@ -322,4 +329,56 @@ def _load_mmlu_pro(limit):
             f"{letters[j]}) {o}" for j, o in enumerate(opts))
         out.append({"id": f"mmlupro-{i}", "question": q,
                     "answer": letters[ai], "options": opts})
+    return out
+
+
+def restrict_options(options: list[str], answer_index: int, k: int, item_seed: int):
+    """Keep the correct option and k-1 distractors of one multiple-choice item.
+
+    The distractors kept for a smaller k are a subset of those kept for a larger
+    k (one seeded permutation of the distractors is truncated), so the option
+    sets are nested across k. The kept options are then put in a seeded order
+    that does not depend on which option is correct. Returns (options, index of
+    the correct option).
+    """
+    import random as _random
+
+    n = len(options)
+    if not 2 <= k <= n:
+        raise ValueError(f"k={k} is outside 2..{n}")
+    distractors = [j for j in range(n) if j != answer_index]
+    _random.Random(9000 + item_seed).shuffle(distractors)
+    keep = [answer_index] + distractors[:k - 1]
+    _random.Random(7000 + 31 * item_seed + k).shuffle(keep)
+    return [options[j] for j in keep], keep.index(answer_index)
+
+
+def _load_mmlu_pro_k(limit, k):
+    """Answer-space intervention on MMLU-Pro.
+
+    The items are the ten-option questions of the same seeded sample as
+    _load_mmlu_pro, so every value of k presents the same questions; only the
+    number of options shown differs (see restrict_options).
+    """
+    import random as _random
+
+    from datasets import load_dataset
+    ds = load_dataset("TIGER-Lab/MMLU-Pro", split="test")
+    idx = list(range(len(ds)))
+    _random.Random(4321).shuffle(idx)
+    letters = "ABCDEFGHIJ"
+    out = []
+    for i in idx:
+        if limit and len(out) >= limit:
+            break
+        ex = ds[i]
+        opts = [o for o in ex["options"] if o not in (None, "N/A", "")]
+        ai = ex.get("answer_index")
+        if ai is None or len(opts) != 10 or ai >= len(opts):
+            continue
+        kept, new_ai = restrict_options(opts, ai, k, i)
+        q = ex["question"] + "\n" + "\n".join(
+            f"{letters[j]}) {o}" for j, o in enumerate(kept))
+        out.append({"id": f"mmlupro-{i}-k{k}", "question": q,
+                    "answer": letters[new_ai], "options": kept})
     return out

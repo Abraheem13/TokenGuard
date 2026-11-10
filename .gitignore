@@ -22,3 +22,7 @@ external/DEER/data/
 .DS_Store
 .idea/
 .vscode/
+
+# GPU environment and raw logs of new runs
+.venv-gpu/
+experiments/v2/*.log

@@ -31,3 +31,23 @@ def test_unknown_benchmark_raises():
     with pytest.raises(ValueError):
         from tokenguard.reasoning.datasets import load_benchmark
         load_benchmark("nonsense")
+
+
+def test_answer_space_intervention_keeps_the_answer_and_nests_distractors():
+    from tokenguard.reasoning.datasets import restrict_options
+
+    opts = [f"option {j}" for j in range(10)]
+    for item_seed in range(25):
+        answer = item_seed % 10
+        kept = {}
+        for k in (2, 4, 10):
+            sub, ai = restrict_options(opts, answer, k, item_seed)
+            assert len(sub) == k and len(set(sub)) == k
+            assert sub[ai] == opts[answer]
+            assert restrict_options(opts, answer, k, item_seed) == (sub, ai)
+            kept[k] = set(sub)
+        assert kept[2] < kept[4] < kept[10] == set(opts)
+    # the position of the correct option is not fixed
+    positions = {restrict_options(opts, 0, 4, s)[1] for s in range(40)}
+    assert len(positions) > 1
+
